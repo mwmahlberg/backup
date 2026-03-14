@@ -5,12 +5,12 @@ env-file = "$HOME/.config/restic/env"
 lock-wait = "10m"
 password-file = "$HOME/.config/restic/password"
 repository = "s3:fra1.digitaloceanspaces.com/mwmbackups"
-run-before = "/usr/bin/podman pause --all;$HOME/.local/share/backup/restic/hooks/export-layered-packages.sh && $HOME/.local/share/backup/restic/hooks/export-flatpaks.sh && $HOME/.local/share/backup/restic/hooks/export-vscode-extensions.sh"
-run-finally = "/usr/bin/podman unpause --all"
 [default.backup]
 compression = "max"
 exclude-if-present = [".resticignore", ".nobackup", ".backupignore"]
 one-file-system = true
+run-before = "/usr/bin/podman pause --all;$HOME/.local/share/backup/restic/hooks/export-layered-packages.sh && $HOME/.local/share/backup/restic/hooks/export-flatpaks.sh && $HOME/.local/share/backup/restic/hooks/export-vscode-extensions.sh"
+run-finally = "/usr/bin/podman unpause --all"
 schedule = "*:0/30"
 schedule-permission = "user_logged_on"
 source = ["$HOME"]
@@ -34,3 +34,10 @@ keep-weekly = 4
 prune = true
 schedule = "12:00"
 schedule-permission = "user_logged_on"
+
+[default.restore]
+delete = true
+host = true
+path = true
+target = "/"
+run-after = "$HOME/.local/share/backup/restore/bootstrap.sh"
