@@ -1,0 +1,31 @@
+version = "1"
+
+[default]
+repository = "s3:fra1.digitaloceanspaces.com/mwmbackups"
+password-file = "$HOME/.config/restic/password"
+env-file = "$HOME/.config/restic/env"
+run-before = "podman pause --all;$HOME/.local/share/backup/restic/hooks/export-layered-packages.sh && $HOME/.local/share/backup/restic/hooks/export-flatpaks.sh && $HOME/.local/share/backup/restic/hooks/export-vscode-extensions.sh"
+run-finally = "podman unpause --all"
+[default.backup]
+schedule="hourly"
+schedule-permission = "user_logged_on"
+source = [
+  "$HOME"
+]
+
+exclude = [
+  "$HOME/.cache",
+  "$HOME/.local/share/containers/storage",
+  "$HOME/.local/share/Trash",
+  "$HOME/**/node_modules",
+  "$HOME/**/target"
+]
+
+
+[default.forget]
+schedule="daily"
+schedule-permission="user_logged_on"
+keep-daily = 7
+keep-weekly = 4
+keep-monthly = 12
+prune = true
