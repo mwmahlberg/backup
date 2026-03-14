@@ -27,6 +27,7 @@ git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
 
 - Backup guide: `docs/backup.md`
 - Restore guide: `docs/restore.md`
+- Kinoite rebase guide: `docs/kinoite-rebase.md`
 
 ## Install required tools
 

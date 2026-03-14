@@ -1,0 +1,11 @@
+FROM quay.io/fedora-ostree-desktops/kinoite:42
+
+# Base workstation tools expected by this repository's backup and restore flow.
+RUN rpm-ostree install \
+    jq \
+    restic \
+    flatpak \
+    podman
+
+# Commit the resulting ostree container layer.
+RUN ostree container commit
