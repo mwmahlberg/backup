@@ -6,10 +6,8 @@ password-file = "$HOME/.config/restic/password"
 env-file = "$HOME/.config/restic/env"
 run-before = "/usr/bin/podman pause --all;$HOME/.local/share/backup/restic/hooks/export-layered-packages.sh && $HOME/.local/share/backup/restic/hooks/export-flatpaks.sh && $HOME/.local/share/backup/restic/hooks/export-vscode-extensions.sh"
 run-finally = "/usr/bin/podman unpause --all"
-check-after = true
-check-before = true
-check-unused = true
 [default.backup]
+compression = "max"
 schedule = "*:0/30"
 schedule-permission = "user_logged_on"
 source = ["$HOME"]
@@ -22,9 +20,6 @@ exclude = [
   "$HOME/**/target",
 ]
 
-[default.prune]
-schedule-permission = "user_logged_on"
-schedule = "15/2:00:00"
 [default.check]
 schedule-permission = "user_logged_on"
 schedule = "00/2:00:00"
