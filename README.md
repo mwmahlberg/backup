@@ -144,6 +144,7 @@ Run this from a TTY (for example `Ctrl`+`Alt`+`F3`) or before first graphical lo
 
 Restore is executed through `resticprofile` (`[default.restore]` in `restic/profiles.toml`) with `delete = true`, so files not present in the selected snapshot are removed from the restore target.
 After a successful restore, `[default.restore].run-after` automatically runs `restore/bootstrap.sh` to apply layered packages, Flatpaks, and VS Code extensions.
+`~/.config/restic` is excluded from both backup and restore, so local credentials are not overwritten.
 
 ```bash
 # Optional: inspect snapshots first.
@@ -158,5 +159,11 @@ resticprofile -c ~/.local/share/backup/restic/profiles.toml restore <snapshot-id
 ```
 
 This restores the full home tree, including dotfiles and user data.
+
+If `~/.local/share/backup` was restored from an older snapshot, pull the latest repo state before re-enabling schedules:
+
+```bash
+git -C ~/.local/share/backup pull --ff-only
+```
 
 If `rpm-ostree` layered packages were installed, reboot afterwards.

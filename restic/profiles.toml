@@ -17,6 +17,7 @@ source = ["$HOME"]
 
 exclude = [
   "$HOME/.cache",
+  "$HOME/.config/restic",
   "$HOME/.local/share/containers/storage",
   "$HOME/.local/share/Trash",
   "$HOME/**/node_modules",
@@ -37,6 +38,7 @@ schedule-permission = "user_logged_on"
 
 [default.restore]
 delete = true
+exclude = ["$HOME/.config/restic"]
 host = true
 path = true
 target = "/"
