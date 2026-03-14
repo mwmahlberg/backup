@@ -41,6 +41,7 @@ systemctl reboot
 
 The commands below install Linux `x86_64` binaries from GitHub Releases into `~/.local/bin`.
 If your architecture is different, replace `linux_amd64` with the correct target.
+On Fedora Silverblue, `~/.local/bin` is in `PATH` by default.
 
 ```bash
 mkdir -p ~/.local/bin /tmp/backup-install
@@ -61,8 +62,8 @@ install -m 0755 /tmp/backup-install/resticprofile ~/.local/bin/resticprofile
 ### 3) Verify installation
 
 ```bash
-~/.local/bin/restic version
-~/.local/bin/resticprofile version
+restic version
+resticprofile version
 command -v jq podman flatpak
 ```
 
@@ -84,10 +85,10 @@ AWS_SECRET_ACCESS_KEY=...
 ## Initialize and run manually
 
 ```bash
-~/.local/bin/resticprofile -c ~/.local/share/backup/restic/profiles.toml init
-~/.local/bin/resticprofile -c ~/.local/share/backup/restic/profiles.toml backup
-~/.local/bin/resticprofile -c ~/.local/share/backup/restic/profiles.toml check
-~/.local/bin/resticprofile -c ~/.local/share/backup/restic/profiles.toml forget
+resticprofile -c ~/.local/share/backup/restic/profiles.toml init
+resticprofile -c ~/.local/share/backup/restic/profiles.toml backup
+resticprofile -c ~/.local/share/backup/restic/profiles.toml check
+resticprofile -c ~/.local/share/backup/restic/profiles.toml forget
 ```
 
 ## Systemd user units (managed by resticprofile)
@@ -96,7 +97,7 @@ Scheduling is defined directly in `restic/profiles.toml` (`default.backup`, `def
 Use `resticprofile schedule` to install systemd user units from that config.
 
 ```bash
-~/.local/bin/resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
+resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
 systemctl --user list-timers '*resticprofile*'
 ```
 
@@ -111,7 +112,7 @@ journalctl --user -n 200 --no-pager | grep -i resticprofile
 Remove scheduled units again:
 
 ```bash
-~/.local/bin/resticprofile -c ~/.local/share/backup/restic/profiles.toml unschedule --all
+resticprofile -c ~/.local/share/backup/restic/profiles.toml unschedule --all
 ```
 
 Optional, if you want user timers to run without an active graphical/session login:
@@ -141,26 +142,21 @@ git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
 
 Run this from a TTY (for example `Ctrl`+`Alt`+`F3`) or before first graphical login on a fresh install, so running desktop processes do not overwrite restored files.
 
+Restore is executed through `resticprofile` (`[default.restore]` in `restic/profiles.toml`) with `delete = true`, so files not present in the selected snapshot are removed from the restore target.
+After a successful restore, `[default.restore].run-after` automatically runs `restore/bootstrap.sh` to apply layered packages, Flatpaks, and VS Code extensions.
+
 ```bash
 # Optional: inspect snapshots first.
-# ~/.local/bin/restic -r "$(sed -n 's/^repository = "\(.*\)"/\1/p' ~/.local/share/backup/restic/profiles.toml | head -n1)" \
+# restic -r "$(sed -n 's/^repository = "\(.*\)"/\1/p' ~/.local/share/backup/restic/profiles.toml | head -n1)" \
 #   --password-file ~/.config/restic/password snapshots
 
 # Full restore with latest snapshot:
-bash ~/.local/share/backup/restore/bootstrap.sh full-restore
+resticprofile -c ~/.local/share/backup/restic/profiles.toml restore latest
 
 # Or restore a specific snapshot:
-bash ~/.local/share/backup/restore/bootstrap.sh full-restore <snapshot-id>
+resticprofile -c ~/.local/share/backup/restic/profiles.toml restore <snapshot-id>
 ```
 
 This restores the full home tree, including dotfiles and user data.
-
-### 3) Re-apply layered packages, Flatpaks, and VS Code extensions
-
-```bash
-# Included automatically in `full-restore`.
-# Run this only if you already restored HOME and only want to apply state.
-bash ~/.local/share/backup/restore/bootstrap.sh apply-state
-```
 
 If `rpm-ostree` layered packages were installed, reboot afterwards.
