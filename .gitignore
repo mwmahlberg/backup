@@ -1,0 +1,8 @@
+# secrets
+.env
+password
+
+# runtime / temp
+.cache
+tmp
+*.log
