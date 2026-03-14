@@ -9,6 +9,7 @@ run-before = "/usr/bin/podman pause --all;$HOME/.local/share/backup/restic/hooks
 run-finally = "/usr/bin/podman unpause --all"
 [default.backup]
 compression = "max"
+exclude-if-present = [".resticignore", ".nobackup", ".backupignore"]
 one-file-system = true
 schedule = "*:0/30"
 schedule-permission = "user_logged_on"
