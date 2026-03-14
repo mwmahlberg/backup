@@ -18,6 +18,7 @@ Restore is now handled directly by `resticprofile` restore settings in `restic/p
 - `path = true`
 - `host = true`
 - `delete = true`
+- `exclude = ["$HOME/.config/restic"]`
 - `run-after = "$HOME/.local/share/backup/restore/bootstrap.sh"`
 
 ## Important warning
@@ -84,7 +85,13 @@ Use this if you already know what each step does and want the shortest path.
 	resticprofile -c ~/.local/share/backup/restic/profiles.toml restore latest
 	```
 
-6. Re-enable backup schedules.
+6. Refresh backup repository (if needed).
+
+	```bash
+	git -C ~/.local/share/backup pull --ff-only
+	```
+
+7. Re-enable backup schedules.
 
 	```bash
 	resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
@@ -189,8 +196,17 @@ resticprofile -c ~/.local/share/backup/restic/profiles.toml restore 70e69674
 ```
 
 `restore/bootstrap.sh` is executed automatically via `[default.restore].run-after` after a successful restore.
+`~/.config/restic` is intentionally excluded from restore.
 
-### 7) Reboot and verify
+### 7) Refresh backup repository (if needed)
+
+If `~/.local/share/backup` was restored from an older snapshot, pull latest changes:
+
+```bash
+git -C ~/.local/share/backup pull --ff-only
+```
+
+### 8) Reboot and verify
 
 Example:
 
@@ -200,7 +216,7 @@ systemctl reboot
 
 After reboot, verify key applications, shell config, dotfiles, and project directories.
 
-### 8) Re-enable backup schedules
+### 9) Re-enable backup schedules
 
 Example:
 
