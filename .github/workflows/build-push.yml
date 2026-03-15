@@ -10,7 +10,7 @@ on:
       - main
       - develop
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '0 10 * * *'
 
 jobs:
   build-push:
