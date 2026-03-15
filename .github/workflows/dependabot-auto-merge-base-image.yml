@@ -54,7 +54,23 @@ jobs:
               return;
             }
 
-            core.info('Eligible Dependabot base image update PR detected.');
+            const addedFromMatch = patch.match(/(^|\n)\+FROM\s+(quay\.io\/fedora-ostree-desktops\/kinoite:([^\s]+))/m);
+            if (!addedFromMatch) {
+              core.info('No added Kinoite FROM line found in Dockerfile patch; skipping auto-merge.');
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            const addedImage = addedFromMatch[2];
+            const addedTag = addedFromMatch[3];
+            const staysOnFedora43 = /^43(?:$|[.-])/.test(addedTag);
+            if (!staysOnFedora43) {
+              core.info(`Base image update points to ${addedImage}, which is outside the Fedora 43 line; manual review required.`);
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            core.info(`Eligible Dependabot base image update PR detected: ${addedImage}`);
             core.setOutput('eligible', 'true');
 
   approve-and-enable-automerge:
@@ -69,7 +85,7 @@ jobs:
       - name: Auto-approve Dependabot PR
         uses: hmarr/auto-approve-action@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          review-message: "Auto approved automated PR"
 
       - name: Enable auto-merge
         uses: peter-evans/enable-pull-request-automerge@v3
