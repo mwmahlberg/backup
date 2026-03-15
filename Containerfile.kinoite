@@ -1,5 +1,12 @@
 FROM quay.io/fedora-ostree-desktops/kinoite:43
 
+LABEL org.opencontainers.image.title="kinoite-workstation" \
+    org.opencontainers.image.description="Custom Fedora Kinoite workstation image" \
+    org.opencontainers.image.url="https://github.com/mwmahlberg/backup" \
+    org.opencontainers.image.source="https://github.com/mwmahlberg/backup" \
+    org.opencontainers.image.authors="Markus Mahlberg" \
+    org.opencontainers.image.base.name="quay.io/fedora-ostree-desktops/kinoite:43"
+
 # Enable RPM Fusion and VS Code repository inside the image build.
 RUN echo "rpmfusion-free-key-2020" >/dev/null && cat > /etc/yum.repos.d/rpmfusion-free.repo <<'EOF'
 [rpmfusion-free]
@@ -73,14 +80,14 @@ RUN rpm-ostree install \
 RUN set -eu; \
     arch="$(uname -m)"; \
     case "$arch" in \
-        x86_64)  asset_arch=amd64 ;; \
-        aarch64) asset_arch=arm64 ;; \
-        *)       echo "Unsupported arch: $arch" >&2; exit 1 ;; \
+    x86_64)  asset_arch=amd64 ;; \
+    aarch64) asset_arch=arm64 ;; \
+    *)       echo "Unsupported arch: $arch" >&2; exit 1 ;; \
     esac; \
     version="$(curl -fsSL https://api.github.com/repos/gittower/git-flow-next/releases/latest \
-        | sed -n 's/^[[:space:]]*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"; \
+    | sed -n 's/^[[:space:]]*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"; \
     curl -fsSL "https://github.com/gittower/git-flow-next/releases/download/${version}/git-flow-next-${version}-linux-${asset_arch}.tar.gz" \
-        | tar -xzf - --wildcards 'git-flow-*' --strip-components=0 -C /tmp; \
+    | tar -xzf - --wildcards 'git-flow-*' --strip-components=0 -C /tmp; \
     install -m 0755 /tmp/git-flow-* /usr/local/bin/git-flow; \
     git-flow version
 
