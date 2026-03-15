@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0](https://github.com/mwmahlberg/backup/releases/tag/v0.9.0) (2026-03-15)
+
+
+### Features
+
+* add daily scheduled Fedora 43 rebuilds for `main` and `develop` ([5213301](https://github.com/mwmahlberg/backup/commit/5213301))
+
+
+### Chores
+
+* sync scheduled rebuild workflow changes from `main` into `develop` ([a1b7ec9](https://github.com/mwmahlberg/backup/commit/a1b7ec9))
+
 ## [0.8.1](https://github.com/mwmahlberg/backup/releases/tag/v0.8.1) (2026-03-15)
 
 
