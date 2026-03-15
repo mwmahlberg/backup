@@ -42,10 +42,12 @@ Use this if you already know what each step does and want the shortest path.
 	systemctl reboot
 	```
 
-2. Clone the repository.
+2. Clone the repository and link the profile config.
 
 	```bash
 	git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
+	mkdir -p ~/.config/resticprofile
+	ln -sf ~/.local/share/backup/restic/profiles.toml ~/.config/resticprofile/profiles.toml
 	```
 
 3. Install latest `restic` and `resticprofile`.
@@ -82,7 +84,7 @@ Use this if you already know what each step does and want the shortest path.
 5. Restore full HOME from latest snapshot.
 
 	```bash
-	resticprofile -c ~/.local/share/backup/restic/profiles.toml restore latest
+	resticprofile restore latest
 	```
 
 6. Refresh backup repository (if needed).
@@ -94,7 +96,7 @@ Use this if you already know what each step does and want the shortest path.
 7. Re-enable backup schedules.
 
 	```bash
-	resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
+	resticprofile schedule --all --start --reload
 	```
 
 ## Step-by-step from a naked system
@@ -114,6 +116,8 @@ Example:
 
 ```bash
 git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
+mkdir -p ~/.config/resticprofile
+ln -sf ~/.local/share/backup/restic/profiles.toml ~/.config/resticprofile/profiles.toml
 ```
 
 ### 3) Install latest `restic` and `resticprofile`
@@ -186,13 +190,13 @@ restic \
 Restore latest snapshot (example):
 
 ```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml restore latest
+resticprofile restore latest
 ```
 
 Restore a specific snapshot ID (example):
 
 ```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml restore 70e69674
+resticprofile restore 70e69674
 ```
 
 `restore/bootstrap.sh` is executed automatically via `[default.restore].run-after` after a successful restore.
@@ -221,7 +225,7 @@ After reboot, verify key applications, shell config, dotfiles, and project direc
 Example:
 
 ```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
+resticprofile schedule --all --start --reload
 systemctl --user list-timers '*resticprofile*'
 ```
 
