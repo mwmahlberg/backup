@@ -153,8 +153,8 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 
 Die Release-Automation ist passend zu `git-flow` in zwei Schritte aufgeteilt:
 
-1. Push auf `release/x.y.z`: CI erzeugt `CHANGELOG.md` und `releaselog.md` aus Conventional Commits und committet beide Dateien zurück in dieselbe Release-Branch.
-2. Release abschließen (`git flow release finish x.y.z`) und Tags pushen: CI erstellt/aktualisiert nur das GitHub-Release für `vX.Y.Z`.
+1. Push auf `release/vX.Y.Z` (oder `release/X.Y.Z`): CI erzeugt `CHANGELOG.md` und `releaselog.md` aus Conventional Commits und committet beide Dateien zurück in dieselbe Release-Branch.
+2. Release abschließen (`git flow release finish vX.Y.Z`) und Tags pushen: CI erstellt/aktualisiert nur das GitHub-Release für `vX.Y.Z`.
 
 Das GitHub-Release enthält bewusst keine Artefakte, sondern nur den Link auf die versionierte README:
 

@@ -36,12 +36,13 @@ jobs:
               ;;
           esac
 
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "Release branch name must look like release/x.y.z" >&2
+          if ! printf '%s' "$version" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Release branch name must look like release/vx.y.z" >&2
             exit 1
           fi
 
-          echo "release_tag=v${version}" >> "$GITHUB_OUTPUT"
+          normalized_version="${version#v}"
+          echo "release_tag=v${normalized_version}" >> "$GITHUB_OUTPUT"
 
       - name: Create temporary local release tag
         run: |
