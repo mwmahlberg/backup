@@ -183,8 +183,8 @@ task system:auto-update:status
 
 Release automation is split into two stages to match `git-flow`:
 
-1. Push to `release/x.y.z`: CI generates `CHANGELOG.md` and `releaselog.md` from Conventional Commits and commits both files back to the same release branch.
-2. Finish release (`git flow release finish x.y.z`) and push tags: CI only creates/updates a GitHub Release for `vX.Y.Z`.
+1. Push to `release/vX.Y.Z` (or `release/X.Y.Z`): CI generates `CHANGELOG.md` and `releaselog.md` from Conventional Commits and commits both files back to the same release branch.
+2. Finish release (`git flow release finish vX.Y.Z`) and push tags: CI only creates/updates a GitHub Release for `vX.Y.Z`.
 
 The GitHub Release intentionally has no artifacts and contains only a link to the versioned README:
 
