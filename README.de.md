@@ -60,7 +60,7 @@ Fedora Kinoite oder Silverblue normal installieren. Nach dem ersten Boot weiter 
 Beim **allerersten** Rebase ist `task` noch nicht verfügbar; daher manuell:
 
 ```bash
-sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:latest
+sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:43
 sudo systemctl reboot
 ```
 
