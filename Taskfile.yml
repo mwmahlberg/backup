@@ -1,293 +1,94 @@
 version: '3'
 
-vars:
-  CONTAINERFILE: Containerfile.kinoite
-  REGISTRY:
-    sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
-  IMAGE:
-    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}"
-  IMAGE_REPO:
-    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}" | sed 's/:[^:]*$//'
+includes:
+  backup:
+    taskfile: ./.task/backup.yml
+  image:
+    taskfile: ./.task/image.yml
+  ostree:
+    taskfile: ./.task/ostree.yml
+  restore:
+    taskfile: ./.task/restore.yml
+  secrets:
+    taskfile: ./.task/secrets.yml
+  setup:
+    taskfile: ./.task/setup.yml
+  system:
+    taskfile: ./.task/system.yml
 
 tasks:
   default:
     desc: List available tasks
+    summary: |
+      Print all tasks from the root Taskfile and the included namespace taskfiles.
+      Use this command when you want a quick overview of the supported workflows.
     cmds:
       - task --list
 
   help:
-   desc: Zeigt die empfohlenen Standard-Workflows
-   cmds:
-    - |
-      cat <<'EOF'
-      Backup/Restore Workflows
-
-      1) Frisches System (ein Kommando)
-        backup-task setup:first-boot
-
-      2) Vollständiger Restore
-        backup-task restore:full
-
-      3) Nach Reboot Timer wieder aktivieren
-        backup-task restore:schedule
-
-      4) Diagnose
-        backup-task doctor
-
-      Hinweis: Im Repository kannst du statt backup-task direkt task verwenden.
-      EOF
-
-  registry:logout:
-    desc: Log out from container registry
-    cmds:
-      - podman logout "{{.REGISTRY}}" || true
-
-  registry:login:
-    desc: Log in to container registry using DOCKER_PASSWORD
-    deps:
-      - registry:logout
-    requires:
-      vars:
-        - DOCKER_PASSWORD
-    cmds:
-      - printf '%s' "${DOCKER_PASSWORD}" | podman login "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
-
-  ostree:logout:
-    desc: Remove only this registry from ostree auth config
-    cmds:
-      - sudo podman logout --authfile /etc/ostree/auth.json "{{.REGISTRY}}" || true
-
-  ostree:login:
-    desc: Configure ostree registry auth using DOCKER_PASSWORD
-    deps:
-      - ostree:logout
-    requires:
-      vars:
-        - DOCKER_PASSWORD
-    cmds:
-      - sudo install -d -m 0755 /etc/ostree
-      - printf '%s' "${DOCKER_PASSWORD}" | sudo podman login --authfile /etc/ostree/auth.json "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
-
-  image:build:
-    desc: Build the Kinoite image locally
-    sources:
-      - "{{.CONTAINERFILE}}"
-    cmds:
-      - podman build -t "{{.IMAGE}}" -f "{{.CONTAINERFILE}}" .
-
-  image:push:
-    desc: Push the Kinoite image to the registry
-    deps:
-      - registry:login
-      - image:build
-    cmds:
-      - podman push "{{.IMAGE}}"
-
-  image:digest:
-    desc: Print the remote digest for the image tag
-    cmds:
-      - skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"
-
-  system:rebase:
-    desc: Rebase the local system to the current image digest after confirmation
-    vars:
-      DIGEST:
-        sh: skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"
-      TARGET: ostree-unverified-registry:{{.IMAGE_REPO}}@{{.DIGEST}}
-    prompt: Rebase system to {{.TARGET}}?
-    cmds:
-      - sudo rpm-ostree rebase "{{.TARGET}}"
-
-  backup:seed:
-    desc: Kopiert den mitgelieferten Backup-Code nach ~/.local/share/backup
+    desc: Show guided workflows
+    summary: |
+      Print the recommended end-to-end flows for first boot, full restore,
+      post-restore scheduling, and diagnostics. This is the best starting point
+      for users who want the shortest supported path.
     cmds:
       - |
-        SRC="${BACKUP_SOURCE_DIR:-/usr/share/backup}"
-        DST="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}"
+        cat <<'EOF'
+        Backup/Restore Workflows
 
-        if [[ ! -d "$SRC" ]] && [[ -d "./restic" ]] && [[ -d "./restore" ]]; then
-          SRC="."
-        fi
+        1) Fresh system, one-command setup
+           backup-task setup:first-boot
 
-        if [[ ! -d "$SRC" ]]; then
-          echo "Backup-Source nicht gefunden: $SRC" >&2
-          exit 1
-        fi
+        2) Full restore
+           backup-task restore:full
 
-        mkdir -p "$DST"
-        for item in Taskfile.yml restic restore README.md README.de.md docs; do
-          if [[ -e "$SRC/$item" ]]; then
-            cp -a "$SRC/$item" "$DST"/
-          fi
-        done
-        chmod 0755 "$DST"/restic/hooks/*.sh "$DST"/restore/*.sh 2>/dev/null || true
-        echo "Backup-Code kopiert: $SRC -> $DST"
+        3) Re-enable timers after reboot
+           backup-task system:schedule
+
+        4) Run diagnostics
+           backup-task doctor
+
+        Inside the repository you can use 'task' directly.
+        EOF
 
   doctor:
-    desc: Prüft Voraussetzungen für Backup/Restore
+    desc: Validate backup and restore prerequisites
+    summary: |
+      Check that required binaries exist, that the bundled backup source is available,
+      and that local restic configuration files are present. This task is safe to run
+      before setup, backup, restore, or support/debugging work.
     cmds:
       - |
         set -euo pipefail
         PROFILE="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml"
         SRC="${BACKUP_SOURCE_DIR:-/usr/share/backup}"
 
-        if [[ ! -d "$SRC" ]] && [[ -d "./restic" ]] && [[ -d "./restore" ]]; then
+        if [[ ! -d "$SRC" ]] && [[ -d "./restic" ]] && [[ -d "./restore" ]] && [[ -d "./.task" ]]; then
           SRC="."
         fi
 
         for bin in restic resticprofile task; do
           command -v "$bin" >/dev/null 2>&1 || {
-            echo "Fehlt: $bin" >&2
+            echo "Missing required binary: $bin" >&2
             exit 1
           }
         done
 
         [[ -d "$SRC" ]] || {
-          echo "Fehlt: $SRC" >&2
+          echo "Missing backup source directory: $SRC" >&2
           exit 1
         }
 
         if [[ ! -f "$PROFILE" ]]; then
-          echo "Hinweis: $PROFILE fehlt (run: task backup:seed oder task restore:init)"
+          echo "Notice: $PROFILE is missing (run: task backup:seed or task restore:init)"
         fi
 
         if [[ ! -f "$HOME/.config/restic/password" ]]; then
-          echo "Hinweis: ~/.config/restic/password fehlt"
+          echo "Notice: ~/.config/restic/password is missing"
         fi
 
         if [[ ! -f "$HOME/.config/restic/env" ]]; then
-          echo "Hinweis: ~/.config/restic/env fehlt"
+          echo "Notice: ~/.config/restic/env is missing"
         fi
 
-        echo "doctor: Basis-Checks erfolgreich"
-
-  secrets:check:
-    desc: Prüft, ob Restic-Secrets lokal vorhanden sind (ohne Inhalt auszugeben)
-    cmds:
-      - |
-        set -euo pipefail
-        for f in "$HOME/.config/restic/password" "$HOME/.config/restic/env"; do
-          if [[ ! -f "$f" ]]; then
-            echo "Fehlt: $f" >&2
-            exit 1
-          fi
-          perms="$(stat -c '%a' "$f")"
-          if [[ "$perms" != "600" ]]; then
-            echo "Warnung: $f hat Rechte $perms (empfohlen: 600)"
-          fi
-        done
-        echo "secrets:check erfolgreich"
-
-  restore:init:interactive:
-    desc: Interaktive Ersteinrichtung ohne lange Env-Variablenzeile
-    deps:
-      - backup:seed
-    cmds:
-      - |
-        set -euo pipefail
-
-        read -r -p "RESTIC_REPOSITORY: " RESTIC_REPOSITORY
-        read -r -p "AWS_ACCESS_KEY_ID: " AWS_ACCESS_KEY_ID
-        read -r -s -p "AWS_SECRET_ACCESS_KEY: " AWS_SECRET_ACCESS_KEY
-        echo
-        read -r -s -p "RESTIC_PASSWORD: " RESTIC_PASSWORD
-        echo
-
-        mkdir -p "$HOME/.config/restic"
-        printf '%s\n' "$RESTIC_PASSWORD" > "$HOME/.config/restic/password"
-        chmod 600 "$HOME/.config/restic/password"
-
-        cat > "$HOME/.config/restic/env" <<EOF
-        RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
-        AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-        AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-        EOF
-        chmod 600 "$HOME/.config/restic/env"
-
-        mkdir -p "$HOME/.config/resticprofile"
-        ln -sf "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" "$HOME/.config/resticprofile/profiles.toml"
-        echo "Interaktive Einrichtung abgeschlossen."
-
-  setup:first-boot:
-    desc: One-command Setup auf frischem System (init + schedule)
-    deps:
-      - restore:init
-      - doctor
-    cmds:
-      - |
-        set -euo pipefail
-        PROFILE="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml"
-
-        set -a
-        source "$HOME/.config/restic/env"
-        set +a
-
-        if restic -r "$RESTIC_REPOSITORY" --password-file "$HOME/.config/restic/password" snapshots >/dev/null 2>&1; then
-          echo "Restic-Repository erreichbar; init nicht notwendig."
-        else
-          echo "Restic-Repository leer oder nicht initialisiert; führe init aus..."
-          resticprofile -c "$PROFILE" init
-        fi
-      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" schedule --all --start --reload
-      - systemctl --user list-timers '*resticprofile*'
-
-  restore:init:
-    desc: |
-      Richtet die restic-Konfiguration auf einem frischen System ein.
-      Erwartet: RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, RESTIC_PASSWORD
-    deps:
-      - backup:seed
-    requires:
-      vars:
-        - RESTIC_REPOSITORY
-        - AWS_ACCESS_KEY_ID
-        - AWS_SECRET_ACCESS_KEY
-        - RESTIC_PASSWORD
-    cmds:
-      - mkdir -p ~/.config/restic
-      - printf '%s\n' "${RESTIC_PASSWORD}" > ~/.config/restic/password
-      - chmod 600 ~/.config/restic/password
-      - |
-        cat > ~/.config/restic/env <<EOF
-        RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
-        AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-        AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-        EOF
-      - chmod 600 ~/.config/restic/env
-      - mkdir -p ~/.config/resticprofile
-      - ln -sf "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" ~/.config/resticprofile/profiles.toml
-
-  restore:run:
-    desc: Stellt HOME aus dem neuesten Snapshot wieder her (resticprofile restore latest)
-    prompt: |
-      HOME wird aus dem letzten Snapshot wiederhergestellt (--delete aktiv).
-      Bitte aus einer TTY oder vor dem ersten grafischen Login ausführen.
-      Fortfahren?
-    cmds:
-      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore latest
-
-  restore:full:
-    desc: Führt vollständigen Restore aus und zeigt die nächsten Schritte an
-    deps:
-      - doctor
-    prompt: |
-      Vollständiger Restore startet jetzt (inkl. --delete aus profiles.toml).
-      Bitte nur aus TTY oder vor erstem grafischen Login ausführen.
-      Fortfahren?
-    cmds:
-      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore latest
-      - 'echo "Restore abgeschlossen. Bitte jetzt rebooten: sudo systemctl reboot"'
-      - 'echo "Nach dem Reboot: backup-task restore:schedule (oder im Repo: task restore:schedule)"'
-
-  restore:bootstrap:
-    desc: |
-      Wendet gespeicherten Workstation-Zustand an (rpm-ostree-Pakete, Flatpaks, VS Code Extensions).
-      Wird normalerweise automatisch nach restore:run ausgeführt.
-    cmds:
-      - bash "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restore/bootstrap.sh"
-
-  restore:schedule:
-    desc: Aktiviert die Backup-Zeitpläne nach einem Restore neu
-    cmds:
-      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" schedule --all --start --reload
-      - systemctl --user list-timers '*resticprofile*'
+        echo "doctor: base checks passed"

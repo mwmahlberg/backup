@@ -1,0 +1,54 @@
+version: '3'
+
+tasks:
+  init:
+    desc: Create restic configuration for a fresh system
+    summary: |
+      Seed the bundled backup files into the user's backup directory, create the restic secret
+      files via secrets:setup, and link ~/.config/resticprofile/profiles.toml to the bundled
+      profile. Missing required variables are prompted automatically when interactive mode is
+      enabled.
+    deps:
+      - backup:seed
+      - secrets:setup
+      - secrets:check
+    cmds:
+      - mkdir -p ~/.config/resticprofile
+      - ln -sf "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" ~/.config/resticprofile/profiles.toml
+
+  run:
+    desc: Restore HOME from the latest snapshot
+    summary: |
+      Run resticprofile restore against the latest snapshot using the bundled profile in the
+      user's backup directory. This task is intended for controlled restore execution from a TTY.
+    prompt: |
+      HOME will be restored from the latest snapshot with delete semantics enabled.
+      Run this only from a TTY or before the first graphical login.
+      Continue?
+    cmds:
+      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore latest
+
+  full:
+    desc: Run the full restore workflow
+    summary: |
+      Validate prerequisites, run a full restore from the latest snapshot, and print the next
+      manual steps for rebooting and re-enabling systemd user timers afterwards.
+    deps:
+      - doctor
+    prompt: |
+      A full restore will now start using delete semantics from profiles.toml.
+      Run this only from a TTY or before the first graphical login.
+      Continue?
+    cmds:
+      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore latest
+      - 'echo "Restore completed. Reboot now: sudo systemctl reboot"'
+      - 'echo "After reboot run: backup-task system:schedule (or task system:schedule in the repository)"'
+
+  bootstrap:
+    desc: Re-apply saved workstation state manually
+    summary: |
+      Re-run the post-restore bootstrap script that installs saved layered packages, Flatpaks,
+      and VS Code extensions from the exported state files in ~/.local/state/backup.
+    cmds:
+      - bash "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restore/bootstrap.sh"
+
