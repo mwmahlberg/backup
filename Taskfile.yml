@@ -1,0 +1,130 @@
+version: '3'
+
+vars:
+  CONTAINERFILE: Containerfile.kinoite
+  REGISTRY:
+    sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
+  IMAGE:
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}"
+  IMAGE_REPO:
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}" | sed 's/:[^:]*$//'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  registry:logout:
+    desc: Log out from container registry
+    cmds:
+      - podman logout "{{.REGISTRY}}" || true
+
+  registry:login:
+    desc: Log in to container registry using DOCKER_PASSWORD
+    deps:
+      - registry:logout
+    requires:
+      vars:
+        - DOCKER_PASSWORD
+    cmds:
+      - printf '%s' "${DOCKER_PASSWORD}" | podman login "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
+
+  ostree:logout:
+    desc: Remove only this registry from ostree auth config
+    cmds:
+      - sudo podman logout --authfile /etc/ostree/auth.json "{{.REGISTRY}}" || true
+
+  ostree:login:
+    desc: Configure ostree registry auth using DOCKER_PASSWORD
+    deps:
+      - ostree:logout
+    requires:
+      vars:
+        - DOCKER_PASSWORD
+    cmds:
+      - sudo install -d -m 0755 /etc/ostree
+      - printf '%s' "${DOCKER_PASSWORD}" | sudo podman login --authfile /etc/ostree/auth.json "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
+
+  image:build:
+    desc: Build the Kinoite image locally
+    sources:
+      - "{{.CONTAINERFILE}}"
+    cmds:
+      - podman build -t "{{.IMAGE}}" -f "{{.CONTAINERFILE}}" .
+
+  image:push:
+    desc: Push the Kinoite image to the registry
+    deps:
+      - registry:login
+      - image:build
+    cmds:
+      - podman push "{{.IMAGE}}"
+
+  image:digest:
+    desc: Print the remote digest for the image tag
+    cmds:
+      - skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"
+
+  system:rebase:
+    desc: Rebase the local system to the current image digest after confirmation
+    vars:
+      DIGEST:
+        sh: skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"
+      TARGET: ostree-unverified-registry:{{.IMAGE_REPO}}@{{.DIGEST}}
+    prompt: Rebase system to {{.TARGET}}?
+    cmds:
+      - sudo rpm-ostree rebase "{{.TARGET}}"
+
+  restore:init:
+    desc: |
+      Richtet die restic-Konfiguration auf einem frischen System ein.
+      Erwartet: RESTIC_REPOSITORY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, RESTIC_PASSWORD
+    requires:
+      vars:
+        - RESTIC_REPOSITORY
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+        - RESTIC_PASSWORD
+    cmds:
+      - mkdir -p ~/.config/restic
+      - printf '%s\n' "${RESTIC_PASSWORD}" > ~/.config/restic/password
+      - chmod 600 ~/.config/restic/password
+      - |
+        cat > ~/.config/restic/env <<EOF
+        RESTIC_REPOSITORY=${RESTIC_REPOSITORY}
+        AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+        AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+        EOF
+      - chmod 600 ~/.config/restic/env
+      - mkdir -p ~/.local/share/backup
+      - |
+        if [ ! -d ~/.local/share/backup/.git ]; then
+          git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
+        else
+          git -C ~/.local/share/backup pull --ff-only
+        fi
+      - mkdir -p ~/.config/resticprofile
+      - ln -sf ~/.local/share/backup/restic/profiles.toml ~/.config/resticprofile/profiles.toml
+
+  restore:run:
+    desc: Stellt HOME aus dem neuesten Snapshot wieder her (resticprofile restore latest)
+    prompt: |
+      HOME wird aus dem letzten Snapshot wiederhergestellt (--delete aktiv).
+      Bitte aus einer TTY oder vor dem ersten grafischen Login ausführen.
+      Fortfahren?
+    cmds:
+      - resticprofile -c ~/.local/share/backup/restic/profiles.toml restore latest
+
+  restore:bootstrap:
+    desc: |
+      Wendet gespeicherten Workstation-Zustand an (rpm-ostree-Pakete, Flatpaks, VS Code Extensions).
+      Wird normalerweise automatisch nach restore:run ausgeführt.
+    cmds:
+      - bash ~/.local/share/backup/restore/bootstrap.sh
+
+  restore:schedule:
+    desc: Aktiviert die Backup-Zeitpläne nach einem Restore neu
+    cmds:
+      - resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
+      - systemctl --user list-timers '*resticprofile*'

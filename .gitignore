@@ -7,3 +7,6 @@ password
 .cache
 tmp
 *.log
+
+# go-task cache
+.task/
