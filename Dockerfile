@@ -114,7 +114,7 @@ RUN set -eu; \
 COPY Taskfile.yml /usr/share/backup/Taskfile.yml
 COPY .taskrc.yml /usr/share/backup/.taskrc.yml
 COPY .task/*.yml /usr/share/backup/.task/
-COPY Containerfile.kinoite /usr/share/backup/Containerfile.kinoite
+COPY Dockerfile /usr/share/backup/Dockerfile
 COPY restic/ /usr/share/backup/restic/
 COPY restore/ /usr/share/backup/restore/
 COPY docs/ /usr/share/backup/docs/

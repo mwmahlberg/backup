@@ -23,7 +23,7 @@ tasks:
         fi
 
         mkdir -p "$DST" "$DST/.task"
-        for item in Containerfile.kinoite Taskfile.yml .taskrc.yml restic restore README.md README.de.md docs; do
+        for item in Dockerfile Taskfile.yml .taskrc.yml restic restore README.md README.de.md docs; do
           if [[ -e "$SRC/$item" ]]; then
             cp -a "$SRC/$item" "$DST"/
           fi

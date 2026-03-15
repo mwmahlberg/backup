@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  CONTAINERFILE: Containerfile.kinoite
+  CONTAINERFILE: Dockerfile
   REGISTRY:
     sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
   IMAGE:
@@ -35,8 +35,8 @@ tasks:
   build:
     desc: Build the Kinoite image locally
     summary: |
-      Build the custom Kinoite image from Containerfile.kinoite using podman. The task tracks
-      the Containerfile as a source so task can skip the build when nothing relevant changed.
+      Build the custom Kinoite image from Dockerfile using podman. The task tracks
+      the Dockerfile as a source so task can skip the build when nothing relevant changed.
     sources:
       - "{{.CONTAINERFILE}}"
       - Taskfile.yml

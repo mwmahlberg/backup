@@ -10,7 +10,7 @@ if [[ ! -d "$SOURCE_DIR" ]]; then
 fi
 
 mkdir -p "$TARGET_DIR" "$TARGET_DIR/.task"
-for item in Containerfile.kinoite Taskfile.yml .taskrc.yml restic restore README.md README.de.md docs; do
+for item in Dockerfile Taskfile.yml .taskrc.yml restic restore README.md README.de.md docs; do
     if [[ -e "$SOURCE_DIR/$item" ]]; then
         cp -a "$SOURCE_DIR/$item" "$TARGET_DIR"/
     fi
