@@ -1,4 +1,4 @@
-FROM quay.io/fedora-ostree-desktops/kinoite:43
+FROM quay.io/fedora-ostree-desktops/kinoite:44
 
 LABEL org.opencontainers.image.title="kinoite-workstation" \
     org.opencontainers.image.description="Custom Fedora Kinoite workstation image" \
