@@ -79,6 +79,28 @@ task system:rebase
 
 `system:rebase` resolves the current remote digest with `skopeo` and prompts for confirmation before rebasing.
 
+### Optional: In-system automatic updates
+
+If you want the host to pull updates automatically, rebase once to a moving channel tag and enable
+`rpm-ostree` automatic staging:
+
+```bash
+# stable channel (tracks main builds)
+task system:channel:stable
+
+# or dev channel (tracks develop builds)
+# task system:channel:dev
+
+sudo systemctl reboot
+task system:auto-update:enable
+```
+
+The status can be checked with:
+
+```bash
+task system:auto-update:status
+```
+
 ## 6) Rollback
 
 ```bash

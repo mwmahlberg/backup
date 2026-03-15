@@ -5,6 +5,10 @@ vars:
     sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
   IMAGE_REPO:
     sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}" | sed 's/:[^:]*$//'
+  CHANNEL_STABLE:
+    sh: printf '%s' "${CHANNEL_STABLE_IMAGE:-docker.io/mwmahlberg/kinoite-workstation:43}"
+  CHANNEL_DEV:
+    sh: printf '%s' "${CHANNEL_DEV_IMAGE:-docker.io/mwmahlberg/kinoite-workstation:43-dev}"
 
 tasks:
   rebase:
@@ -19,6 +23,68 @@ tasks:
     prompt: Rebase system to {{.TARGET}}?
     cmds:
       - sudo rpm-ostree rebase "{{.TARGET}}"
+
+  channel:stable:
+    desc: Rebase to the stable floating channel tag
+    summary: |
+      Rebase the system to the stable channel tag and reboot. Use this to keep the
+      host on the stable track while still receiving new image digests automatically.
+    prompt: Rebase system to ostree-unverified-registry:{{.CHANNEL_STABLE}}?
+    cmds:
+      - sudo rpm-ostree rebase "ostree-unverified-registry:{{.CHANNEL_STABLE}}"
+
+  channel:dev:
+    desc: Rebase to the dev floating channel tag
+    summary: |
+      Rebase the system to the dev channel tag and reboot. Use this to track the
+      develop image stream with automatic updates enabled by rpm-ostreed.
+    prompt: Rebase system to ostree-unverified-registry:{{.CHANNEL_DEV}}?
+    cmds:
+      - sudo rpm-ostree rebase "ostree-unverified-registry:{{.CHANNEL_DEV}}"
+
+  auto-update:enable:
+    desc: Enable staged rpm-ostree automatic updates
+    summary: |
+      Set AutomaticUpdatePolicy=stage in /etc/rpm-ostreed.conf and enable
+      rpm-ostreed-automatic.timer so updates are downloaded and staged automatically.
+    cmds:
+      - |
+        sudo bash -euo pipefail -c '
+          conf="/etc/rpm-ostreed.conf"
+          if grep -q "^#\?AutomaticUpdatePolicy=" "$conf"; then
+            sed -i -E "s/^#?AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=stage/" "$conf"
+          else
+            printf "\nAutomaticUpdatePolicy=stage\n" >> "$conf"
+          fi
+        '
+      - sudo systemctl enable --now rpm-ostreed-automatic.timer
+      - systemctl status rpm-ostreed-automatic.timer --no-pager
+
+  auto-update:disable:
+    desc: Disable rpm-ostree automatic updates
+    summary: |
+      Disable and stop rpm-ostreed-automatic.timer and set
+      AutomaticUpdatePolicy=none in /etc/rpm-ostreed.conf.
+    cmds:
+      - |
+        sudo bash -euo pipefail -c '
+          conf="/etc/rpm-ostreed.conf"
+          if grep -q "^#\?AutomaticUpdatePolicy=" "$conf"; then
+            sed -i -E "s/^#?AutomaticUpdatePolicy=.*/AutomaticUpdatePolicy=none/" "$conf"
+          else
+            printf "\nAutomaticUpdatePolicy=none\n" >> "$conf"
+          fi
+        '
+      - sudo systemctl disable --now rpm-ostreed-automatic.timer
+
+  auto-update:status:
+    desc: Show rpm-ostree update status and timer state
+    summary: |
+      Print timer state and rpm-ostree deployment status to verify whether
+      automatic update staging is active and what is currently deployed.
+    cmds:
+      - systemctl status rpm-ostreed-automatic.timer --no-pager
+      - rpm-ostree status
 
   schedule:
     desc: Re-enable backup schedules after restore
