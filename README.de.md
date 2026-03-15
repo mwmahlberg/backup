@@ -129,17 +129,17 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 
 `backup-task help` zeigt den geführten Einstieg.
 
-| Task                | Beschreibung                                                       |
-| ------------------- | ------------------------------------------------------------------ |
-| `help`              | Geführter Einstieg für Standard-Workflows                          |
-| `doctor`            | Voraussetzungen prüfen                                             |
-| `secrets:setup`     | Restic-Secret-Dateien anlegen                                      |
-| `secrets:check`     | Vorhandensein/Rechte von Restic-Secrets prüfen                     |
-| `setup:first-boot`  | One-command Ersteinrichtung                                        |
-| `restore:init`      | Restic-Konfiguration über Env-Variablen anlegen                    |
-| `restore:full`      | Vollständiger Restore mit Next-Step-Hinweis                        |
-| `restore:bootstrap` | Workstation-Zustand manuell erneut anwenden                        |
-| `system:schedule`   | Backup-Zeitpläne nach Restore reaktivieren                         |
+| Task                | Beschreibung                                    |
+| ------------------- | ----------------------------------------------- |
+| `help`              | Geführter Einstieg für Standard-Workflows       |
+| `doctor`            | Voraussetzungen prüfen                          |
+| `secrets:setup`     | Restic-Secret-Dateien anlegen                   |
+| `secrets:check`     | Vorhandensein/Rechte von Restic-Secrets prüfen  |
+| `setup:first-boot`  | One-command Ersteinrichtung                     |
+| `restore:init`      | Restic-Konfiguration über Env-Variablen anlegen |
+| `restore:full`      | Vollständiger Restore mit Next-Step-Hinweis     |
+| `restore:bootstrap` | Workstation-Zustand manuell erneut anwenden     |
+| `system:schedule`   | Backup-Zeitpläne nach Restore reaktivieren      |
 
 ---
 
