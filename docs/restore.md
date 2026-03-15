@@ -1,250 +1,154 @@
 # restore
 
-Restore guide for a freshly installed Fedora Silverblue system with no tools and no restic config present.
+Restore-Anleitung für ein frisch installiertes System mit dem Custom Kinoite-Image.
 
-Note: commands below use `restic` and `resticprofile` directly because `~/.local/bin` is in `PATH` by default on Fedora Silverblue.
+Das Image enthält bereits `restic`, `resticprofile` und `task` – keine manuelle Tool-Installation nötig.
 
-## Goal
+## Überblick
 
-Restore full `$HOME` from restic and then re-apply workstation state:
+Restore stellt das vollständige `$HOME` aus einem restic-Snapshot wieder her und wendet danach automatisch den gespeicherten Workstation-Zustand an:
 
-- layered `rpm-ostree` packages
-- Flatpak apps
-- VS Code extensions
+- layered `rpm-ostree`-Pakete
+- Flatpak-Apps
+- VS Code Extensions
 
-Restore is now handled directly by `resticprofile` restore settings in `restic/profiles.toml` (`[default.restore]`), including:
+Die `resticprofile`-Restore-Konfiguration (`[default.restore]` in `restic/profiles.toml`) verwendet:
+- `target = "/"` mit absolutem Pfad-Mapping
+- `delete = true` – Dateien, die nicht im Snapshot enthalten sind, werden entfernt
+- `exclude = ["$HOME/.config/restic"]` – lokale Zugangsdaten werden nie überschrieben
+- `run-after = ".../restore/bootstrap.sh"` – Workstation-Zustand nach Restore automatisch wiederherstellen
 
-- `target = "/"`
-- `path = true`
-- `host = true`
-- `delete = true`
-- `exclude = ["$HOME/.config/restic"]`
-- `run-after = "$HOME/.local/share/backup/restore/bootstrap.sh"`
+## ⚠️ Voraussetzungen
 
-## Important warning
+**Ohne diese Informationen ist kein Restore möglich:**
 
-You must have the restic password available from a different machine or secure offline storage.
-Without `~/.config/restic/password`, restore is not possible.
+| Was                                                  | Wo aufbewahren                                                   |
+| ---------------------------------------------------- | ---------------------------------------------------------------- |
+| `~/.config/restic/password`                          | USB-Stick, Passwort-Manager oder anderes sicheres Offline-Medium |
+| S3-Zugangsdaten (Repository-URL, Access Key, Secret) | Dieselbe sichere Quelle                                          |
 
-## Safety first
+Diese Dateien sind aus dem Backup ausgeschlossen und werden beim Restore absichtlich nicht überschrieben.
 
-Run restore from a TTY (`Ctrl`+`Alt`+`F3`) or before first graphical login.
-`restore` uses restic `--delete` (configured in `[default.restore]`), so your live `$HOME` will be made to match the selected snapshot.
+## Sicherheitshinweis
 
-## Quickstart (one-screen checklist)
+Restore am besten aus einer TTY (`Ctrl`+`Alt`+`F3`) oder **vor dem ersten grafischen Login** ausführen,
+damit laufende Desktop-Prozesse keine Dateien überschreiben, die gerade zurückgespielt werden.
 
-Use this if you already know what each step does and want the shortest path.
-
-1. Install base packages, then reboot.
-
-	```bash
-	sudo rpm-ostree install git curl jq rsync bzip2 tar
-	systemctl reboot
-	```
-
-2. Clone the repository and link the profile config.
-
-	```bash
-	git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-	mkdir -p ~/.config/resticprofile
-	ln -sf ~/.local/share/backup/restic/profiles.toml ~/.config/resticprofile/profiles.toml
-	```
-
-3. Install latest `restic` and `resticprofile`.
-
-	```bash
-	mkdir -p ~/.local/bin /tmp/backup-install
-	RESTIC_VERSION="$(curl -fsSL https://api.github.com/repos/restic/restic/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n1)"
-	curl -fsSL "https://github.com/restic/restic/releases/download/${RESTIC_VERSION}/restic_${RESTIC_VERSION#v}_linux_amd64.bz2" | bzip2 -d > ~/.local/bin/restic
-	chmod +x ~/.local/bin/restic
-	RESTICPROFILE_VERSION="$(curl -fsSL https://api.github.com/repos/creativeprojects/resticprofile/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n1)"
-	curl -fsSL "https://github.com/creativeprojects/resticprofile/releases/download/${RESTICPROFILE_VERSION}/resticprofile_${RESTICPROFILE_VERSION#v}_linux_amd64.tar.gz" -o /tmp/backup-install/resticprofile.tar.gz
-	tar -xzf /tmp/backup-install/resticprofile.tar.gz -C /tmp/backup-install resticprofile
-	install -m 0755 /tmp/backup-install/resticprofile ~/.local/bin/resticprofile
-	```
-
-4. Create restic secrets and lock down permissions.
-
-	```bash
-	mkdir -p ~/.config/restic
-	cat > ~/.config/restic/password <<'EOF'
-	your-very-secret-restic-password
-	EOF
-	chmod 600 ~/.config/restic/password
-	```
-
-	```bash
-	cat > ~/.config/restic/env <<'EOF'
-	AWS_ACCESS_KEY_ID=your-access-key
-	AWS_SECRET_ACCESS_KEY=your-secret-key
-	EOF
-	chmod 600 ~/.config/restic/env
-	```
-
-5. Restore full HOME from latest snapshot.
-
-	```bash
-	resticprofile restore latest
-	```
-
-6. Refresh backup repository (if needed).
-
-	```bash
-	git -C ~/.local/share/backup pull --ff-only
-	```
-
-7. Re-enable backup schedules.
-
-	```bash
-	resticprofile schedule --all --start --reload
-	```
-
-## Step-by-step from a naked system
-
-### 1) Install base packages
-
-Example:
+## Schnellstart (Kurzcheckliste)
 
 ```bash
-sudo rpm-ostree install git curl jq rsync bzip2 tar
-systemctl reboot
+# 1. Repo klonen
+git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
+cd ~/.local/share/backup
+
+# 2. Konfiguration anlegen (Zugangsdaten aus USB-Stick / Passwort-Manager)
+RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
+  AWS_ACCESS_KEY_ID=your-access-key \
+  AWS_SECRET_ACCESS_KEY=your-secret-key \
+  RESTIC_PASSWORD=your-restic-password \
+  task restore:init
+
+# 3. Restore ausführen
+task restore:run
+
+# 4. Neu starten
+sudo systemctl reboot
+
+# 5. Nach Reboot: Backup-Zeitpläne aktivieren
+task restore:schedule
 ```
 
-### 2) Clone this repository
+## Schritt für Schritt
 
-Example:
+### 1) Konfiguration anlegen
 
 ```bash
 git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-mkdir -p ~/.config/resticprofile
-ln -sf ~/.local/share/backup/restic/profiles.toml ~/.config/resticprofile/profiles.toml
+cd ~/.local/share/backup
 ```
 
-### 3) Install latest `restic` and `resticprofile`
-
-Example:
-
 ```bash
-mkdir -p ~/.local/bin /tmp/backup-install
-
-RESTIC_VERSION="$(curl -fsSL https://api.github.com/repos/restic/restic/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n1)"
-curl -fsSL "https://github.com/restic/restic/releases/download/${RESTIC_VERSION}/restic_${RESTIC_VERSION#v}_linux_amd64.bz2" \
-	| bzip2 -d \
-	> ~/.local/bin/restic
-chmod +x ~/.local/bin/restic
-
-RESTICPROFILE_VERSION="$(curl -fsSL https://api.github.com/repos/creativeprojects/resticprofile/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n1)"
-curl -fsSL "https://github.com/creativeprojects/resticprofile/releases/download/${RESTICPROFILE_VERSION}/resticprofile_${RESTICPROFILE_VERSION#v}_linux_amd64.tar.gz" \
-	-o /tmp/backup-install/resticprofile.tar.gz
-tar -xzf /tmp/backup-install/resticprofile.tar.gz -C /tmp/backup-install resticprofile
-install -m 0755 /tmp/backup-install/resticprofile ~/.local/bin/resticprofile
+RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
+  AWS_ACCESS_KEY_ID=your-access-key \
+  AWS_SECRET_ACCESS_KEY=your-secret-key \
+  RESTIC_PASSWORD=your-restic-password \
+  task restore:init
 ```
 
-### 4) Create restic config files
+`restore:init` legt an:
+- `~/.config/restic/password` (chmod 600)
+- `~/.config/restic/env` (chmod 600)
+- `~/.config/resticprofile/profiles.toml` (Symlink auf `restic/profiles.toml`)
 
-Create directories:
+Falls das Repository bereits vorhanden ist, führt `restore:init` stattdessen `git pull` aus.
 
-```bash
-mkdir -p ~/.config/restic
-```
-
-Create password file (example):
-
-```bash
-cat > ~/.config/restic/password <<'EOF'
-your-very-secret-restic-password
-EOF
-chmod 600 ~/.config/restic/password
-```
-
-Create env file (example for S3-compatible storage):
+### 2) Snapshots prüfen (optional)
 
 ```bash
-cat > ~/.config/restic/env <<'EOF'
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-EOF
-chmod 600 ~/.config/restic/env
-```
-
-### 5) Verify tools and repository access
-
-Example:
-
-```bash
-restic version
-resticprofile version
-
-set -a
-source ~/.config/restic/env
-set +a
-
+set -a; source ~/.config/restic/env; set +a
 restic \
-	-r "$(sed -n 's/^repository = "\(.*\)"/\1/p' ~/.local/share/backup/restic/profiles.toml | head -n1)" \
-	--password-file ~/.config/restic/password \
-	snapshots
+  -r "$RESTIC_REPOSITORY" \
+  --password-file ~/.config/restic/password \
+  snapshots
 ```
 
-### 6) Run full restore
+### 3) Restore ausführen
 
-Restore latest snapshot (example):
+Neuesten Snapshot:
 
 ```bash
-resticprofile restore latest
+task restore:run
 ```
 
-Restore a specific snapshot ID (example):
+Bestimmte Snapshot-ID (manuell via `resticprofile`):
 
 ```bash
-resticprofile restore 70e69674
+resticprofile -c ~/.local/share/backup/restic/profiles.toml restore 70e69674
 ```
 
-`restore/bootstrap.sh` is executed automatically via `[default.restore].run-after` after a successful restore.
-`~/.config/restic` is intentionally excluded from restore.
+`restore/bootstrap.sh` wird automatisch nach erfolgreichem Restore ausgeführt und stellt layered Pakete, Flatpaks und VS Code Extensions wieder her.
 
-### 7) Refresh backup repository (if needed)
-
-If `~/.local/share/backup` was restored from an older snapshot, pull latest changes:
+### 4) Repo aktualisieren (falls aus älterem Snapshot)
 
 ```bash
 git -C ~/.local/share/backup pull --ff-only
 ```
 
-### 8) Reboot and verify
-
-Example:
+### 5) Neu starten und prüfen
 
 ```bash
-systemctl reboot
+sudo systemctl reboot
 ```
 
-After reboot, verify key applications, shell config, dotfiles, and project directories.
+Nach Reboot: Shell-Konfiguration, Dotfiles, Projektverzeichnisse und Anwendungen prüfen.
 
-### 9) Re-enable backup schedules
-
-Example:
+### 6) Backup-Zeitpläne reaktivieren
 
 ```bash
-resticprofile schedule --all --start --reload
-systemctl --user list-timers '*resticprofile*'
+task restore:schedule
 ```
 
-Optional for timers without active login:
+Optional, damit Timer auch ohne aktive Login-Session laufen:
 
 ```bash
 loginctl enable-linger "$USER"
 ```
 
-## Apply-state helper
+## Workstation-Zustand manuell erneut anwenden
 
-`restore/bootstrap.sh` can still be run manually if you need to re-apply state later.
+Falls `bootstrap.sh` erneut ausgeführt werden soll (z. B. nach partiell fehlgeschlagenen Paket-Installationen):
 
 ```bash
-bash ~/.local/share/backup/restore/bootstrap.sh
+task restore:bootstrap
 ```
 
-## State files used by apply-state
+## Zustandsdateien
 
-- `~/.local/state/backup/layered-packages.txt`
-- `~/.local/state/backup/flatpaks.txt`
-- `~/.local/state/backup/vscode-extensions.txt`
+Diese Dateien werden beim Backup durch die Hooks in `restic/hooks/` erzeugt und im Snapshot gespeichert:
+
+| Datei                                         | Inhalt                    |
+| --------------------------------------------- | ------------------------- |
+| `~/.local/state/backup/layered-packages.txt`  | layered rpm-ostree-Pakete |
+| `~/.local/state/backup/flatpaks.txt`          | installierte Flatpak-Apps |
+| `~/.local/state/backup/vscode-extensions.txt` | VS Code Extensions        |
+

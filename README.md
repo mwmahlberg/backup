@@ -1,170 +1,156 @@
 # backup
 
-Reproducible workstation backup for Fedora Silverblue.
+Custom Fedora Kinoite Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
 
-## What this repository contains
+## Was dieses Repository enthält
 
-- `restic/` configuration (`profiles.toml`) and backup hooks
-- `restore/` bootstrap restore helper
-- `docs/` restore notes
+| Pfad                    | Zweck                                                                 |
+| ----------------------- | --------------------------------------------------------------------- |
+| `Containerfile.kinoite` | Custom Kinoite-Image (Pakete, Repos, Tools)                           |
+| `Taskfile.yml`          | Aufgabenautomatisierung (`task`) für Build, Push, Rebase, Restore     |
+| `restic/profiles.toml`  | resticprofile-Konfiguration (Backup, Check, Forget, Restore)          |
+| `restic/hooks/`         | Hooks: exportiert Pakete, Flatpaks, VS Code Extensions vor dem Backup |
+| `restore/bootstrap.sh`  | Wendet gespeicherten Workstation-Zustand nach Restore an              |
+| `docs/`                 | Detaillierte Anleitungen                                              |
 
-Generated workstation state files are intentionally not stored in git. They are generated under `~/.local/state/backup/` and included in backups.
+Generierte Zustandsdateien (`~/.local/state/backup/`) sind bewusst nicht in Git – sie werden beim Backup erstellt und mit gesichert.
 
-## Tooling used
+---
 
-- `restic`
-- `resticprofile`
-- DigitalOcean Spaces (S3-compatible storage)
-- `jq` (used by backup hooks)
+## ⚠️ Was auf einem USB-Stick (oder sicher offline) liegen muss
 
-## Clone location
+Diese Dateien sind **nicht im Backup enthalten** (`~/.config/restic` ist explizit ausgeschlossen).
+Ohne sie ist kein Restore möglich, falls das Gerät verloren geht.
+
+| Datei                       | Inhalt                                                                              |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `~/.config/restic/password` | Passwort für das restic-Repository                                                  |
+| `~/.config/restic/env`      | S3-Zugangsdaten (`RESTIC_REPOSITORY`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) |
+
+Beispiel-Inhalt `~/.config/restic/env`:
+
+```bash
+RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+```
+
+---
+
+## Gesamter Workflow
+
+### 1) Basisinstallation: Fedora Kinoite
+
+Fedora Kinoite normal installieren. Nach dem ersten Boot weiter mit Schritt 2.
+
+### 2) Rebase auf das eigene Image
+
+Beim **allerersten** Rebase ist `task` noch nicht verfügbar; daher manuell:
+
+```bash
+sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:latest
+sudo systemctl reboot
+```
+
+Nach dem Reboot ist das custom Image aktiv und `task` steht zur Verfügung.
+Alle späteren Rebases (z. B. nach einem Push) laufen über:
+
+```bash
+task system:rebase
+```
+
+Details: [docs/kinoite-rebase.md](docs/kinoite-rebase.md)
+
+### 3) Backup einrichten
+
+Voraussetzung: Zugangsdaten liegen bereit (USB-Stick, Passwort-Manager o. ä.).
+
+Dieses Repository klonen:
 
 ```bash
 git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
+cd ~/.local/share/backup
 ```
 
-## Detailed documentation
-
-- Backup guide: `docs/backup.md`
-- Restore guide: `docs/restore.md`
-- Kinoite rebase guide: `docs/kinoite-rebase.md`
-
-## Install required tools
-
-### 1) Install OS package dependency (`jq`)
+Konfiguration anlegen (Zugangsdaten als Umgebungsvariablen übergeben):
 
 ```bash
-sudo rpm-ostree install jq
-systemctl reboot
+RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
+  AWS_ACCESS_KEY_ID=your-access-key \
+  AWS_SECRET_ACCESS_KEY=your-secret-key \
+  RESTIC_PASSWORD=your-restic-password \
+  task restore:init
 ```
 
-### 2) Install latest `restic` and `resticprofile`
-
-The commands below install Linux `x86_64` binaries from GitHub Releases into `~/.local/bin`.
-If your architecture is different, replace `linux_amd64` with the correct target.
-On Fedora Silverblue, `~/.local/bin` is in `PATH` by default.
-
-```bash
-mkdir -p ~/.local/bin /tmp/backup-install
-
-RESTIC_VERSION="$(curl -fsSL https://api.github.com/repos/restic/restic/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n1)"
-curl -fsSL "https://github.com/restic/restic/releases/download/${RESTIC_VERSION}/restic_${RESTIC_VERSION#v}_linux_amd64.bz2" \
-  | bzip2 -d \
-  > ~/.local/bin/restic
-chmod +x ~/.local/bin/restic
-
-RESTICPROFILE_VERSION="$(curl -fsSL https://api.github.com/repos/creativeprojects/resticprofile/releases/latest | sed -n 's/.*"tag_name": "\([^"]*\)".*/\1/p' | head -n1)"
-curl -fsSL "https://github.com/creativeprojects/resticprofile/releases/download/${RESTICPROFILE_VERSION}/resticprofile_${RESTICPROFILE_VERSION#v}_linux_amd64.tar.gz" \
-  -o /tmp/backup-install/resticprofile.tar.gz
-tar -xzf /tmp/backup-install/resticprofile.tar.gz -C /tmp/backup-install resticprofile
-install -m 0755 /tmp/backup-install/resticprofile ~/.local/bin/resticprofile
-```
-
-### 3) Verify installation
-
-```bash
-restic version
-resticprofile version
-command -v jq podman flatpak
-```
-
-## Configure backup profile and secrets
-
-1. Review `~/.local/share/backup/restic/profiles.toml`.
-2. Create `~/.config/restic/password` with your repository password.
-3. Create `~/.config/restic/env` with your S3 credentials.
-
-Important: `~/.config/restic/password` must be stored on a different machine (or another secure offline location). If the backed-up machine is lost, you still need that password to restore.
-
-Example `~/.config/restic/env`:
-
-```bash
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-```
-
-## Initialize and run manually
+Repository initialisieren (einmalig, nur bei Ersteinrichtung):
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml init
-resticprofile -c ~/.local/share/backup/restic/profiles.toml backup
-resticprofile -c ~/.local/share/backup/restic/profiles.toml check
-resticprofile -c ~/.local/share/backup/restic/profiles.toml forget
 ```
 
-## Systemd user units (managed by resticprofile)
-
-Scheduling is defined directly in `restic/profiles.toml` (`default.backup`, `default.check`, `default.forget`).
-Use `resticprofile schedule` to install systemd user units from that config.
+Backup-Zeitpläne (systemd user units) aktivieren:
 
 ```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
-systemctl --user list-timers '*resticprofile*'
+task restore:schedule
 ```
 
-Inspect generated units and recent logs:
+Details: [docs/backup.md](docs/backup.md)
 
-```bash
-systemctl --user list-unit-files | grep -i resticprofile
-systemctl --user list-units --type=service --all | grep -i resticprofile
-journalctl --user -n 200 --no-pager | grep -i resticprofile
-```
+### 4) Restore auf einem frischen System
 
-Remove scheduled units again:
-
-```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml unschedule --all
-```
-
-Optional, if you want user timers to run without an active graphical/session login:
-
-```bash
-loginctl enable-linger "$USER"
-```
-
-## Restore on a vanilla Silverblue system (basic config already done)
-
-For full details and additional troubleshooting, see `docs/restore.md`.
-
-This section assumes the target machine already has:
-
-- network and S3 access
-- `~/.config/restic/password`
-- `~/.config/restic/env`
-
-### 1) Clone repo and install tools
+Voraussetzung: Image ist bereits aktiv (Schritt 2), Zugangsdaten liegen bereit.
+Restore am besten aus einer TTY (`Ctrl`+`Alt`+`F3`) oder vor dem ersten grafischen Login ausführen.
 
 ```bash
 git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-# Then run the install steps above for jq/restic/resticprofile.
+cd ~/.local/share/backup
+
+RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
+  AWS_ACCESS_KEY_ID=your-access-key \
+  AWS_SECRET_ACCESS_KEY=your-secret-key \
+  RESTIC_PASSWORD=your-restic-password \
+  task restore:init
+
+task restore:run
 ```
 
-### 2) Restore complete home directory from snapshot
-
-Run this from a TTY (for example `Ctrl`+`Alt`+`F3`) or before first graphical login on a fresh install, so running desktop processes do not overwrite restored files.
-
-Restore is executed through `resticprofile` (`[default.restore]` in `restic/profiles.toml`) with `delete = true`, so files not present in the selected snapshot are removed from the restore target.
-After a successful restore, `[default.restore].run-after` automatically runs `restore/bootstrap.sh` to apply layered packages, Flatpaks, and VS Code extensions.
-`~/.config/restic` is excluded from both backup and restore, so local credentials are not overwritten.
+Nach dem Restore:
 
 ```bash
-# Optional: inspect snapshots first.
-# restic -r "$(sed -n 's/^repository = "\(.*\)"/\1/p' ~/.local/share/backup/restic/profiles.toml | head -n1)" \
-#   --password-file ~/.config/restic/password snapshots
-
-# Full restore with latest snapshot:
-resticprofile -c ~/.local/share/backup/restic/profiles.toml restore latest
-
-# Or restore a specific snapshot:
-resticprofile -c ~/.local/share/backup/restic/profiles.toml restore <snapshot-id>
+sudo systemctl reboot
+# nach Reboot:
+task restore:schedule
 ```
 
-This restores the full home tree, including dotfiles and user data.
+Details: [docs/restore.md](docs/restore.md)
 
-If `~/.local/share/backup` was restored from an older snapshot, pull the latest repo state before re-enabling schedules:
+---
 
-```bash
-git -C ~/.local/share/backup pull --ff-only
+## Verfügbare Tasks
+
+```
+task --list
 ```
 
-If `rpm-ostree` layered packages were installed, reboot afterwards.
+| Task                | Beschreibung                                              |
+| ------------------- | --------------------------------------------------------- |
+| `image:build`       | Kinoite-Image lokal bauen                                 |
+| `image:push`        | Image in die Registry pushen (baut bei Bedarf, loggt ein) |
+| `image:digest`      | Remote-Digest des Images anzeigen                         |
+| `system:rebase`     | System auf aktuellen Image-Digest rebasen                 |
+| `registry:login`    | In Container-Registry einloggen                           |
+| `registry:logout`   | Aus Container-Registry ausloggen                          |
+| `ostree:login`      | ostree-Auth (`/etc/ostree/auth.json`) konfigurieren       |
+| `ostree:logout`     | Registry aus ostree-Auth entfernen                        |
+| `restore:init`      | restic-Konfiguration auf frischem System anlegen          |
+| `restore:run`       | HOME aus letztem Snapshot wiederherstellen                |
+| `restore:bootstrap` | Workstation-Zustand manuell erneut anwenden               |
+| `restore:schedule`  | Backup-Zeitpläne nach Restore reaktivieren                |
+
+---
+
+## Detaillierte Dokumentation
+
+- [docs/backup.md](docs/backup.md) — Backup-Workflow im Detail
+- [docs/restore.md](docs/restore.md) — Restore-Workflow im Detail
+- [docs/kinoite-rebase.md](docs/kinoite-rebase.md) — Image bauen, pushen und rebasen

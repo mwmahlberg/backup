@@ -1,172 +1,109 @@
 # kinoite rebase
 
-Kinoite-focused image layering and `rpm-ostree rebase` workflow.
+Kinoite-Image bauen, pushen und auf Zielsystemen anwenden.
 
-This approach is for system-level customization (`/usr`) and complements home backup/restore.
-User data in `$HOME` should still be restored with restic.
+Das Custom-Image ergänzt die Home-Sicherung mit `restic`: es stellt den System-Layer (`/usr`) wieder her, während Restic `$HOME` wiederherstellt.
 
-## Goal
+## 1) Containerfile anpassen
 
-Create one custom Kinoite image layer, publish it, and apply it on target hosts with a single rebase command.
+`Containerfile.kinoite` im Repository-Root enthält alle Pakete, Repos und Tools.
 
-## 1) Start from the provided Containerfile
+Hinweise:
+- Fedora-Release (`:43` usw.) an den Zielhost anpassen.
+- Das Image ist auf System-Pakete und -Konfiguration beschränkt; User-Daten gehören in Restic.
+- RPM Fusion und der VS Code-Repo werden im Build aktiviert.
 
-This repository includes `Containerfile.kinoite`.
-Edit package list there to match your desired Kinoite layer.
-
-Notes:
-
-- Pin the Fedora release (`:42`, `:43`, etc.) to match your target lifecycle.
-- Keep this image focused on system packages and system config only.
-- `Containerfile.kinoite` enables RPM Fusion and the Microsoft VS Code repo before package installation.
-
-## 2) Build and push the image
-
-Example (GHCR):
+## 2) Image bauen und pushen
 
 ```bash
-export IMAGE="ghcr.io/<your-user>/kinoite-workstation:latest"
-podman build -t "$IMAGE" -f ./Containerfile.kinoite .
-podman push "$IMAGE"
+task image:push
 ```
 
-## 3) Sign the image (recommended)
+`image:push` baut bei Bedarf automatisch neu (Quelldatei-Tracking auf `Containerfile.kinoite`) und loggt sich vorher ein.
 
-Install signing/inspection tools on your build host:
+Manuell (ohne Task):
 
 ```bash
-sudo rpm-ostree install cosign skopeo
-sudo systemctl reboot
+podman build -t docker.io/mwmahlberg/kinoite-workstation:latest -f Containerfile.kinoite .
+podman push docker.io/mwmahlberg/kinoite-workstation:latest
 ```
 
-Generate a key pair once (store private key securely):
+## 3) Image signieren (geplant)
+
+Einmalig ein Schlüsselpaar erzeugen (privaten Schlüssel sicher aufbewahren):
 
 ```bash
 cosign generate-key-pair
 ```
 
-Sign pushed image:
+Gepushtes Image signieren:
 
 ```bash
-cosign sign --key cosign.key "$IMAGE"
+cosign sign --key cosign.key docker.io/mwmahlberg/kinoite-workstation:latest
 ```
 
-Verify signature before rebasing targets:
+Signatur prüfen:
 
 ```bash
-cosign verify --key cosign.pub "$IMAGE"
+cosign verify --key cosign.pub docker.io/mwmahlberg/kinoite-workstation:latest
 ```
 
-Optionally pin to digest for deterministic rollouts:
+> **Hinweis:** Sobald Signing aktiv ist, sollte der `system:rebase`-Task das TARGET-Präfix
+> von `ostree-unverified-registry:` auf `ostree-image-signed:docker://` umstellen.
+
+## 4) Erster Rebase (manuell)
+
+Beim allerersten Rebase ist `task` noch nicht verfügbar; daher direkt mit `rpm-ostree`:
 
 ```bash
-DIGEST="$(skopeo inspect --format '{{.Digest}}' "docker://$IMAGE")"
-echo "$DIGEST"
-```
-
-## 4) Configure signature policy on target hosts
-
-Install verification tools on each target host:
-
-```bash
-sudo rpm-ostree install cosign skopeo
+sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:latest
 sudo systemctl reboot
 ```
 
-Copy your public verification key to the host, for example:
+Nach dem Reboot ist das Custom-Image aktiv und `task` steht zur Verfügung.
 
-```bash
-sudo install -D -m 0644 ./cosign.pub /etc/pki/containers/cosign.pub
-```
-
-Configure `/etc/containers/policy.json` to require sigstore signatures for your registry namespace:
-
-```json
-{
-	"default": [{ "type": "reject" }],
-	"transports": {
-		"docker": {
-			"ghcr.io/<your-user>": [
-				{
-					"type": "sigstoreSigned",
-					"keyPath": "/etc/pki/containers/cosign.pub"
-				}
-			]
-		}
-	}
-}
-```
-
-## 5) Rebase a host to the image
-
-On a Kinoite host:
-
-```bash
-export IMAGE="ghcr.io/<your-user>/kinoite-workstation:latest"
-export DIGEST="$(skopeo inspect --format '{{.Digest}}' "docker://$IMAGE")"
-sudo rpm-ostree rebase "ostree-image-signed:docker://${IMAGE%@*}@${DIGEST}"
-sudo systemctl reboot
-```
-
-After reboot, verify:
+Status prüfen:
 
 ```bash
 rpm-ostree status
 ```
 
-## 6) Update hosts when image changes
+## 5) Folge-Rebases
 
-After pushing a newer tag:
+Nach jedem Push auf eine neue Version:
 
 ```bash
-sudo rpm-ostree upgrade
-sudo systemctl reboot
+task system:rebase
 ```
 
-## 7) Rollback if needed
+`system:rebase` ermittelt den aktuellen Remote-Digest via `skopeo` und fragt vor dem Rebase nach Bestätigung.
+
+## 6) Rollback
 
 ```bash
 sudo rpm-ostree rollback
 sudo systemctl reboot
 ```
 
-## 8) Integrate with this backup repo
+## Gesamter Workflow (Zusammenfassung)
 
-Recommended flow:
+1. `task image:push` — Image bauen und pushen
+2. `task system:rebase` — System rebasen (mit Digest-Pinning)
+3. Neu starten
+4. `task restore:run` — Home aus Snapshot wiederherstellen (falls nötig)
 
-1. Rebase to your Kinoite image to restore system layer.
-2. Restore home with `resticprofile ... restore ...`.
-3. Let `[default.restore].run-after` apply state via `restore/bootstrap.sh`.
-4. Optionally refresh backup repo checkout:
+## Troubleshooting
 
-```bash
-git -C ~/.local/share/backup pull --ff-only
-```
+**Build schlägt fehl mit `Packages not found`:**
+- Repo-Definitionen in `Containerfile.kinoite` prüfen
+- Paketnamen können je Fedora-Version abweichen
 
-## Security note
-
-Treat image signing keys as production secrets. Store `cosign.key` outside this repository and rotate keys if compromise is suspected.
-
-## Troubleshooting build errors
-
-If build fails with `Packages not found`:
-
-- verify you are using the repository's current `Containerfile.kinoite`
-- ensure external repos were added before `rpm-ostree install` packages
-- check package naming differences across Fedora versions (for example `intel-media-driver-free` vs older names)
-- keep signing tools (`cosign`) on the build host; it is not required inside the Kinoite runtime image
-
-If rebase fails with `Package 'rpmfusion-...-release' is already in the base`:
-
-- remove layered release packages on the target before rebasing:
+**Rebase schlägt fehl mit `Package 'rpmfusion-...-release' is already in the base`:**
 
 ```bash
 sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release
 sudo systemctl reboot
 ```
 
-- or use rebase-time overrides:
+**Sicherheitshinweis:** `cosign.key` nicht in dieses Repository einchecken. Schlüssel bei Kompromittierung sofort rotieren.
 
-```bash
-sudo rpm-ostree rebase --uninstall=rpmfusion-free-release --uninstall=rpmfusion-nonfree-release "ostree-unverified-registry:ghcr.io/<your-user>/kinoite-workstation@sha256:<digest>"
-```
