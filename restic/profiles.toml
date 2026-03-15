@@ -13,7 +13,7 @@ run-before = "/usr/bin/podman pause --all;$HOME/.local/share/backup/restic/hooks
 run-finally = "/usr/bin/podman unpause --all"
 schedule = "hourly"
 schedule-permission = "user_logged_on"
-source = ["$HOME"]
+source = ["/var/home/markus"]
 
 exclude = [
   "$HOME/.cache",
@@ -26,7 +26,8 @@ exclude = [
 
 [default.check]
 read-data-subset = "30%"
-schedule = "00/2:00:00"
+lock-wait = "90s"
+schedule = "00/2:15:00"
 schedule-permission = "user_logged_on"
 [default.forget]
 keep-daily = 7
