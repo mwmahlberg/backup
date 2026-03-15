@@ -2,9 +2,9 @@ version: '3'
 
 vars:
   IMAGE:
-    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}"
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
   IMAGE_REPO:
-    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}" | sed 's/:[^:]*$//'
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}" | sed 's/:[^:]*$//'
 
 tasks:
   rebase:

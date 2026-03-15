@@ -5,7 +5,7 @@ vars:
   REGISTRY:
     sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
   IMAGE:
-    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}"
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
 
 tasks:
   logout:

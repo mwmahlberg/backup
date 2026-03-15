@@ -24,8 +24,8 @@ task image:push
 Manuell (ohne Task):
 
 ```bash
-podman build -t docker.io/mwmahlberg/kinoite-workstation:latest -f Containerfile.kinoite .
-podman push docker.io/mwmahlberg/kinoite-workstation:latest
+podman build -t docker.io/mwmahlberg/kinoite-workstation:43 -f Containerfile.kinoite .
+podman push docker.io/mwmahlberg/kinoite-workstation:43
 ```
 
 ## 3) Image signieren (geplant)
@@ -39,13 +39,13 @@ cosign generate-key-pair
 Gepushtes Image signieren:
 
 ```bash
-cosign sign --key cosign.key docker.io/mwmahlberg/kinoite-workstation:latest
+cosign sign --key cosign.key docker.io/mwmahlberg/kinoite-workstation:43
 ```
 
 Signatur prüfen:
 
 ```bash
-cosign verify --key cosign.pub docker.io/mwmahlberg/kinoite-workstation:latest
+cosign verify --key cosign.pub docker.io/mwmahlberg/kinoite-workstation:43
 ```
 
 > **Hinweis:** Sobald Signing aktiv ist, sollte der `system:rebase`-Task das TARGET-Präfix
@@ -57,7 +57,7 @@ Beim allerersten Rebase kann die Ausgangsbasis Fedora Kinoite oder Silverblue se
 `task` ist noch nicht verfügbar; daher direkt mit `rpm-ostree`:
 
 ```bash
-sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:latest
+sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:43
 sudo systemctl reboot
 ```
 
