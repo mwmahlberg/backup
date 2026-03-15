@@ -25,7 +25,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Resolve image tag
+      - name: Resolve image tags
         id: image-tag
         run: |
           branch="${GITHUB_REF_NAME}"
@@ -37,10 +37,18 @@ jobs:
           fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
 
           if [ "${branch}" = "main" ]; then
-            echo "tag=docker.io/mwmahlberg/kinoite-workstation:${fedora_major}" >> "${GITHUB_OUTPUT}"
+            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}"
+            channel_tag="docker.io/mwmahlberg/kinoite-workstation:stable"
           else
-            echo "tag=docker.io/mwmahlberg/kinoite-workstation:${fedora_major}-dev" >> "${GITHUB_OUTPUT}"
+            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}-dev"
+            channel_tag="docker.io/mwmahlberg/kinoite-workstation:dev"
           fi
+
+          echo "primary-tag=${primary_tag}" >> "${GITHUB_OUTPUT}"
+          echo "tags<<EOF" >> "${GITHUB_OUTPUT}"
+          echo "${primary_tag}" >> "${GITHUB_OUTPUT}"
+          echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          echo "EOF" >> "${GITHUB_OUTPUT}"
 
       - name: Resolve push policy
         id: push-policy
@@ -76,6 +84,6 @@ jobs:
           context: .
           file: Dockerfile
           push: ${{ steps.push-policy.outputs.should-push == 'true' }}
-          tags: ${{ steps.image-tag.outputs.tag }}
+          tags: ${{ steps.image-tag.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

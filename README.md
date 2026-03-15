@@ -150,3 +150,31 @@ Details: [docs/restore.md](docs/restore.md)
 - [docs/backup.md](docs/backup.md) - Backup workflow in detail
 - [docs/restore.md](docs/restore.md) - Restore workflow in detail
 - [docs/kinoite-rebase.md](docs/kinoite-rebase.md) - Build, push, and rebase workflow
+
+## Automatic System Updates (in-system)
+
+For unattended updates on Kinoite, use a moving image tag and enable `rpm-ostree` automatic staging.
+
+Switch to your desired update channel:
+
+```bash
+# stable channel (main builds)
+task system:channel:stable
+
+# dev channel (develop builds)
+task system:channel:dev
+
+sudo systemctl reboot
+```
+
+Enable automatic staged updates:
+
+```bash
+task system:auto-update:enable
+```
+
+Check status anytime:
+
+```bash
+task system:auto-update:status
+```
