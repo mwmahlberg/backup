@@ -1,5 +1,6 @@
 # secrets
 .env
+.envrc
 password
 
 # runtime / temp
