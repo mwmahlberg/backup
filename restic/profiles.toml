@@ -1,5 +1,8 @@
 version = "1"
+
+[global]
 prevent-sleep = true
+
 [default]
 env-file = "$HOME/.config/restic/env"
 lock-wait = "10m"
