@@ -1,0 +1,30 @@
+version: '3'
+
+vars:
+  IMAGE:
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}"
+  IMAGE_REPO:
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}" | sed 's/:[^:]*$//'
+
+tasks:
+  rebase:
+    desc: Rebase the local system to the current image digest
+    summary: |
+      Resolve the current remote image digest with skopeo, compose the target rpm-ostree
+      reference, ask for confirmation, and then rebase the local system to that digest-pinned image.
+    vars:
+      DIGEST:
+        sh: skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"
+      TARGET: ostree-unverified-registry:{{.IMAGE_REPO}}@{{.DIGEST}}
+    prompt: Rebase system to {{.TARGET}}?
+    cmds:
+      - sudo rpm-ostree rebase "{{.TARGET}}"
+
+  schedule:
+    desc: Re-enable backup schedules after restore
+    summary: |
+      Recreate and start the resticprofile-managed systemd user timers from the bundled profile,
+      then print the current timer list for immediate verification.
+    cmds:
+      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" schedule --all --start --reload
+      - systemctl --user list-timers '*resticprofile*'

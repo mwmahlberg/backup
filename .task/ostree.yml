@@ -1,0 +1,29 @@
+version: '3'
+
+vars:
+  REGISTRY:
+    sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
+
+tasks:
+  logout:
+    desc: Remove registry credentials from ostree auth
+    summary: |
+      Remove only the configured registry entry from /etc/ostree/auth.json using podman.
+      Existing credentials for other registries are preserved.
+    cmds:
+      - sudo podman logout --authfile /etc/ostree/auth.json "{{.REGISTRY}}" || true
+
+  login:
+    desc: Configure ostree registry authentication
+    summary: |
+      Write or update the configured registry credentials in /etc/ostree/auth.json so
+      rpm-ostree rebase can authenticate against private images. Missing required variables
+      are prompted interactively when supported by the local task runtime.
+    deps:
+      - logout
+    requires:
+      vars:
+        - DOCKER_PASSWORD
+    cmds:
+      - sudo install -d -m 0755 /etc/ostree
+      - printf '%s' "${DOCKER_PASSWORD}" | sudo podman login --authfile /etc/ostree/auth.json "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin

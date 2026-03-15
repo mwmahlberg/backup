@@ -1,0 +1,64 @@
+version: '3'
+
+vars:
+  CONTAINERFILE: Containerfile.kinoite
+  REGISTRY:
+    sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
+  IMAGE:
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:latest}"
+
+tasks:
+  logout:
+    desc: Log out from the container registry
+    internal: true
+    summary: |
+      Log out from the configured container registry. The command is tolerant of an already-
+      logged-out state so it can safely be used as a cleanup step before a fresh login.
+    cmds:
+      - podman logout "{{.REGISTRY}}" || true
+
+  login:
+    desc: Log in to the container registry
+    internal: true
+    summary: |
+      Log in to the configured container registry using DOCKER_PASSWORD and the optional
+      DOCKER_USERNAME. With interactive prompting enabled, missing required variables are
+      requested automatically instead of failing immediately.
+    deps:
+      - logout
+    requires:
+      vars:
+        - DOCKER_PASSWORD
+    cmds:
+      - printf '%s' "${DOCKER_PASSWORD}" | podman login "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
+
+  build:
+    desc: Build the Kinoite image locally
+    summary: |
+      Build the custom Kinoite image from Containerfile.kinoite using podman. The task tracks
+      the Containerfile as a source so task can skip the build when nothing relevant changed.
+    sources:
+      - "{{.CONTAINERFILE}}"
+    cmds:
+      - podman build -t "{{.IMAGE}}" -f "{{.CONTAINERFILE}}" .
+
+  push:
+    desc: Push the Kinoite image to the registry
+    summary: |
+      Log in to the container registry if necessary, build the image when sources changed,
+      and push the resulting image tag to the configured registry.
+    deps:
+      - login
+      - build
+    cmds:
+      - podman push "{{.IMAGE}}"
+
+  digest:
+    desc: Print the remote image digest
+    summary: |
+      Query the registry for the currently published digest of the configured image tag.
+      This is primarily used by the rebase workflow to pin target deployments to a digest.
+    deps:
+      - build
+    cmds:
+      - skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"

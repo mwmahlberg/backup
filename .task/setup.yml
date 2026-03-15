@@ -1,0 +1,29 @@
+version: '3'
+
+tasks:
+  first-boot:
+    desc: Run the first-boot setup workflow
+    summary: |
+      Seed the bundled backup files, create local restic configuration from the required variables,
+      verify prerequisites, initialize the repository only when needed, and enable systemd user timers.
+      This is the preferred one-command setup path on a fresh system.
+    deps:
+      - restore:init
+      - doctor
+    cmds:
+      - |
+        set -euo pipefail
+        PROFILE="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml"
+
+        set -a
+        source "$HOME/.config/restic/env"
+        set +a
+
+        if restic -r "$RESTIC_REPOSITORY" --password-file "$HOME/.config/restic/password" snapshots >/dev/null 2>&1; then
+          echo "Restic repository reachable; init not required."
+        else
+          echo "Restic repository is empty or uninitialized; running init..."
+          resticprofile -c "$PROFILE" init
+        fi
+      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" schedule --all --start --reload
+      - systemctl --user list-timers '*resticprofile*'

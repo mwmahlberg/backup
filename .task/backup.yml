@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+  seed:
+    desc: Seed bundled backup files into the user directory
+    internal: true
+    summary: |
+      Copy the bundled backup taskfiles, documentation, restic configuration, and restore scripts
+      from the image-provided source directory into the user's writable backup directory.
+      This task removes the need for git clone and also works from the repository checkout.
+    cmds:
+      - |
+        SRC="${BACKUP_SOURCE_DIR:-/usr/share/backup}"
+        DST="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}"
+
+        if [[ ! -d "$SRC" ]] && [[ -d "./restic" ]] && [[ -d "./restore" ]] && [[ -d "./.task" ]]; then
+          SRC="."
+        fi
+
+        if [[ ! -d "$SRC" ]]; then
+          echo "Missing backup source directory: $SRC" >&2
+          exit 1
+        fi
+
+        mkdir -p "$DST" "$DST/.task"
+        for item in Containerfile.kinoite Taskfile.yml .taskrc.yml restic restore README.md README.de.md docs; do
+          if [[ -e "$SRC/$item" ]]; then
+            cp -a "$SRC/$item" "$DST"/
+          fi
+        done
+        if compgen -G "$SRC/.task/*.yml" >/dev/null; then
+          cp -a "$SRC"/.task/*.yml "$DST/.task/"
+        fi
+        chmod 0755 "$DST"/restic/hooks/*.sh "$DST"/restore/*.sh 2>/dev/null || true
+        echo "Backup files copied: $SRC -> $DST"

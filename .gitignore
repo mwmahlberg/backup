@@ -9,4 +9,4 @@ tmp
 *.log
 
 # go-task cache
-.task/
+.task/checksum/
