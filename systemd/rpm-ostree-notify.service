@@ -1,7 +1,0 @@
-[Unit]
-Description=Desktop notification for staged rpm-ostree update
-After=rpm-ostreed-automatic.service
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/rpm-ostree-notify.sh

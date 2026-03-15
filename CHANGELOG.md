@@ -2,20 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.10.0](https://github.com/mwmahlberg/backup/releases/tag/v0.10.0) (2026-03-15)
-
-
-### Features
-
-* parameterize Fedora 43/44 image build matrix and package sets
-* add `image:check` task for base image package visibility
-* add staged auto-update desktop notification systemd workflow
-
-
-### Bug Fixes
-
-* avoid Fedora 44 build failures by adjusting layered package defaults
-
 ## [0.9.2](https://github.com/mwmahlberg/backup/releases/tag/v0.9.2) (2026-03-15)
 
 

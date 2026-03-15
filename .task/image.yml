@@ -2,22 +2,10 @@ version: '3'
 
 vars:
   CONTAINERFILE: Dockerfile
-  FEDORA_MAJOR_VERSION:
-    sh: printf '%s' "${FEDORA_MAJOR_VERSION:-43}"
-  RPM_PACKAGES:
-    sh: |
-      major="${FEDORA_MAJOR_VERSION:-43}"
-      if [ -n "${RPM_PACKAGES:-}" ]; then
-        printf '%s' "${RPM_PACKAGES}"
-      elif [ "${major}" -ge 44 ] 2>/dev/null; then
-        printf '%s' "alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
-      else
-        printf '%s' "alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-gpu-tools intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
-      fi
   REGISTRY:
     sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
   IMAGE:
-    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:${FEDORA_MAJOR_VERSION:-43}}"
+    sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
 
 tasks:
   logout:
@@ -44,36 +32,6 @@ tasks:
     cmds:
       - printf '%s' "${DOCKER_PASSWORD}" | podman login "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
 
-  check:
-    desc: Report which RPM packages are already present in the base image
-    summary: |
-      Runs a temporary container from the configured base image and queries each
-      package in RPM_PACKAGES via rpm -q. Prints two lists: packages already
-      present in the base and those that need to be added by rpm-ostree install.
-
-      Useful before bumping FEDORA_MAJOR_VERSION to understand what has changed.
-
-      Override defaults via environment variables:
-        FEDORA_MAJOR_VERSION=42 task image:check
-        RPM_PACKAGES="git vim" task image:check
-    cmds:
-      - |
-        BASE=quay.io/fedora-ostree-desktops/kinoite:{{.FEDORA_MAJOR_VERSION}}
-        echo "Base image: ${BASE}"
-        echo ""
-        podman run --rm "${BASE}" \
-          bash -c \
-            'present=(); missing=()
-            for pkg in "$@"; do
-              if rpm -q "$pkg" &>/dev/null; then present+=("$pkg"); else missing+=("$pkg"); fi
-            done
-            echo "Already in base image (${#present[@]}):"
-            [ ${#present[@]} -gt 0 ] && printf "  [present] %s\n" "${present[@]}" || echo "  (none)"
-            echo ""
-            echo "To be installed via rpm-ostree (${#missing[@]}):"
-            [ ${#missing[@]} -gt 0 ] && printf "  [missing] %s\n" "${missing[@]}" || echo "  (none)"' \
-          -- {{.RPM_PACKAGES}}
-
   build:
     desc: Build the Kinoite image locally
     summary: |
@@ -90,14 +48,7 @@ tasks:
       - README.md
       - README.de.md
     cmds:
-      - |
-        podman build \
-          --pull=newer \
-          --no-cache \
-          --build-arg FEDORA_MAJOR_VERSION={{.FEDORA_MAJOR_VERSION}} \
-          --build-arg "RPM_PACKAGES={{.RPM_PACKAGES}}" \
-          -t "{{.IMAGE}}" \
-          -f "{{.CONTAINERFILE}}" .
+      - podman build -t "{{.IMAGE}}" -f "{{.CONTAINERFILE}}" .
 
   push:
     desc: Push the Kinoite image to the registry
