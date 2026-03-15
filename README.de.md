@@ -16,14 +16,14 @@ backup-task doctor
 
 ## Was dieses Repository enthält
 
-| Pfad                    | Zweck                                                                 |
-| ----------------------- | --------------------------------------------------------------------- |
-| `Dockerfile` | Custom Kinoite-Image (Pakete, Repos, Tools)                           |
-| `Taskfile.yml`          | Aufgabenautomatisierung (`task`) für Build, Push, Rebase, Restore     |
-| `restic/profiles.toml`  | resticprofile-Konfiguration (Backup, Check, Forget, Restore)          |
-| `restic/hooks/`         | Hooks: exportiert Pakete, Flatpaks, VS Code Extensions vor dem Backup |
-| `restore/bootstrap.sh`  | Wendet gespeicherten Workstation-Zustand nach Restore an              |
-| `docs/`                 | Detaillierte Anleitungen                                              |
+| Pfad                   | Zweck                                                                 |
+| ---------------------- | --------------------------------------------------------------------- |
+| `Dockerfile`           | Custom Kinoite-Image (Pakete, Repos, Tools)                           |
+| `Taskfile.yml`         | Aufgabenautomatisierung (`task`) für Build, Push, Rebase, Restore     |
+| `restic/profiles.toml` | resticprofile-Konfiguration (Backup, Check, Forget, Restore)          |
+| `restic/hooks/`        | Hooks: exportiert Pakete, Flatpaks, VS Code Extensions vor dem Backup |
+| `restore/bootstrap.sh` | Wendet gespeicherten Workstation-Zustand nach Restore an              |
+| `docs/`                | Detaillierte Anleitungen                                              |
 
 Generierte Zustandsdateien (`~/.local/state/backup/`) sind bewusst nicht in Git – sie werden beim Backup erstellt und mit gesichert.
 
