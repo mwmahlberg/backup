@@ -61,7 +61,6 @@ RUN if ! getent group alloy >/dev/null 2>&1; then groupadd -r alloy; fi \
 RUN rpm-ostree install \
     alloy \
     code \
-    cosign \
     direnv \
     git \
     go-task \
@@ -76,6 +75,21 @@ RUN rpm-ostree install \
     vim-enhanced
 
 RUN ln -sf /usr/bin/go-task /usr/bin/task
+
+# Install cosign (github.com/sigstore/cosign)
+RUN set -eu; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+    x86_64)  asset_arch=amd64 ;; \
+    aarch64) asset_arch=arm64 ;; \
+    *)       echo "Unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    version="$(curl -fsSL https://api.github.com/repos/sigstore/cosign/releases/latest \
+    | sed -n 's/^[[:space:]]*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"; \
+    curl -fsSL "https://github.com/sigstore/cosign/releases/download/${version}/cosign-linux-${asset_arch}" \
+    -o /usr/bin/cosign; \
+    chmod 0755 /usr/bin/cosign; \
+    cosign version
 
 # Install git-flow-next (github.com/gittower/git-flow-next)
 RUN set -eu; \

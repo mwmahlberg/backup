@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.2](https://github.com/mwmahlberg/backup/releases/tag/v0.9.2) (2026-03-15)
+
+
+### Bug Fixes
+
+* install `cosign` from upstream release binary instead of unavailable RPM package
+
 ## [0.9.1](https://github.com/mwmahlberg/backup/releases/tag/v0.9.1) (2026-03-15)
 
 
