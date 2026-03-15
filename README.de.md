@@ -2,6 +2,18 @@
 
 Custom Fedora Kinoite Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
 
+## Schnellstart (5 Befehle)
+
+Kein `git clone` nötig, da der notwendige Code im Image unter `/usr/share/backup` liegt.
+
+```bash
+backup-task setup:first-boot
+backup-task restore:full
+sudo systemctl reboot
+backup-task restore:schedule
+backup-task doctor
+```
+
 ## Was dieses Repository enthält
 
 | Pfad                    | Zweck                                                                 |
@@ -65,33 +77,23 @@ Details: [docs/kinoite-rebase.de.md](docs/kinoite-rebase.de.md)
 
 Voraussetzung: Zugangsdaten liegen bereit (USB-Stick, Passwort-Manager o. ä.).
 
-Dieses Repository klonen:
+Kein Repository-Checkout nötig. Das Image liefert den Backup-Code unter `/usr/share/backup` mit,
+und `backup-task` verwendet automatisch `Taskfile.yml` von dort.
 
-```bash
-git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-cd ~/.local/share/backup
-```
-
-Konfiguration anlegen (Zugangsdaten als Umgebungsvariablen übergeben):
+One-command Setup:
 
 ```bash
 RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   AWS_ACCESS_KEY_ID=your-access-key \
   AWS_SECRET_ACCESS_KEY=your-secret-key \
   RESTIC_PASSWORD=your-restic-password \
-  task restore:init
+  backup-task setup:first-boot
 ```
 
-Repository initialisieren (einmalig, nur bei Ersteinrichtung):
+Alternative (interaktiv):
 
 ```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml init
-```
-
-Backup-Zeitpläne (systemd user units) aktivieren:
-
-```bash
-task restore:schedule
+backup-task restore:init:interactive
 ```
 
 Details: [docs/backup.de.md](docs/backup.de.md)
@@ -102,16 +104,13 @@ Voraussetzung: Image ist bereits aktiv (Schritt 2), Zugangsdaten liegen bereit.
 Restore am besten aus einer TTY (`Ctrl`+`Alt`+`F3`) oder vor dem ersten grafischen Login ausführen.
 
 ```bash
-git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-cd ~/.local/share/backup
-
 RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   AWS_ACCESS_KEY_ID=your-access-key \
   AWS_SECRET_ACCESS_KEY=your-secret-key \
   RESTIC_PASSWORD=your-restic-password \
-  task restore:init
+  backup-task restore:init
 
-task restore:run
+backup-task restore:full
 ```
 
 Nach dem Restore:
@@ -119,7 +118,7 @@ Nach dem Restore:
 ```bash
 sudo systemctl reboot
 # nach Reboot:
-task restore:schedule
+backup-task restore:schedule
 ```
 
 Details: [docs/restore.de.md](docs/restore.de.md)
@@ -128,24 +127,20 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 
 ## Verfügbare Tasks
 
-```
-task --list
-```
+`backup-task help` zeigt den geführten Einstieg.
 
-| Task                | Beschreibung                                              |
-| ------------------- | --------------------------------------------------------- |
-| `image:build`       | Kinoite-Image lokal bauen                                 |
-| `image:push`        | Image in die Registry pushen (baut bei Bedarf, loggt ein) |
-| `image:digest`      | Remote-Digest des Images anzeigen                         |
-| `system:rebase`     | System auf aktuellen Image-Digest rebasen                 |
-| `registry:login`    | In Container-Registry einloggen                           |
-| `registry:logout`   | Aus Container-Registry ausloggen                          |
-| `ostree:login`      | ostree-Auth (`/etc/ostree/auth.json`) konfigurieren       |
-| `ostree:logout`     | Registry aus ostree-Auth entfernen                        |
-| `restore:init`      | restic-Konfiguration auf frischem System anlegen          |
-| `restore:run`       | HOME aus letztem Snapshot wiederherstellen                |
-| `restore:bootstrap` | Workstation-Zustand manuell erneut anwenden               |
-| `restore:schedule`  | Backup-Zeitpläne nach Restore reaktivieren                |
+| Task                       | Beschreibung                                                   |
+| -------------------------- | -------------------------------------------------------------- |
+| `help`                     | Geführter Einstieg für Standard-Workflows                      |
+| `doctor`                   | Voraussetzungen prüfen                                          |
+| `secrets:check`            | Vorhandensein/Rechte von Restic-Secrets prüfen                 |
+| `backup:seed`              | Code aus `/usr/share/backup` nach `~/.local/share/backup` kopieren |
+| `setup:first-boot`         | One-command Ersteinrichtung                                    |
+| `restore:init`             | Restic-Konfiguration über Env-Variablen anlegen               |
+| `restore:init:interactive` | Restic-Konfiguration interaktiv anlegen                        |
+| `restore:full`             | Vollständiger Restore mit Next-Step-Hinweis                    |
+| `restore:bootstrap`        | Workstation-Zustand manuell erneut anwenden                    |
+| `restore:schedule`         | Backup-Zeitpläne nach Restore reaktivieren                     |
 
 ---
 
