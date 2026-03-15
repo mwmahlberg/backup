@@ -118,11 +118,11 @@ loginctl enable-linger "$USER"
 
 These files are generated before each backup and included in snapshots:
 
-| File | Purpose |
-| --- | --- |
-| `~/.local/state/backup/layered-packages.txt` | layered rpm-ostree packages |
-| `~/.local/state/backup/flatpaks.txt` | installed Flatpak apps |
-| `~/.local/state/backup/vscode-extensions.txt` | VS Code extensions |
+| File                                          | Purpose                     |
+| --------------------------------------------- | --------------------------- |
+| `~/.local/state/backup/layered-packages.txt`  | layered rpm-ostree packages |
+| `~/.local/state/backup/flatpaks.txt`          | installed Flatpak apps      |
+| `~/.local/state/backup/vscode-extensions.txt` | VS Code extensions          |
 
 ## Troubleshooting
 
