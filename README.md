@@ -18,14 +18,14 @@ backup-task doctor
 
 ## What this repository contains
 
-| Path                    | Purpose                                                                    |
-| ----------------------- | -------------------------------------------------------------------------- |
-| `Dockerfile` | Custom Kinoite image (packages, repos, tools)                              |
-| `Taskfile.yml`          | Task automation (`task`) for build, push, rebase, and restore              |
-| `restic/profiles.toml`  | resticprofile configuration (backup, check, forget, restore)               |
-| `restic/hooks/`         | Hooks that export packages, Flatpaks, and VS Code extensions before backup |
-| `restore/bootstrap.sh`  | Re-applies saved workstation state after restore                           |
-| `docs/`                 | Detailed guides                                                            |
+| Path                   | Purpose                                                                    |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `Dockerfile`           | Custom Kinoite image (packages, repos, tools)                              |
+| `Taskfile.yml`         | Task automation (`task`) for build, push, rebase, and restore              |
+| `restic/profiles.toml` | resticprofile configuration (backup, check, forget, restore)               |
+| `restic/hooks/`        | Hooks that export packages, Flatpaks, and VS Code extensions before backup |
+| `restore/bootstrap.sh` | Re-applies saved workstation state after restore                           |
+| `docs/`                | Detailed guides                                                            |
 
 Generated state files (`~/.local/state/backup/`) are intentionally not stored in git. They are generated during backup and included in snapshots.
 
