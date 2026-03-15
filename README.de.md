@@ -59,7 +59,7 @@ Alle späteren Rebases (z. B. nach einem Push) laufen über:
 task system:rebase
 ```
 
-Details: [docs/kinoite-rebase.md](docs/kinoite-rebase.md)
+Details: [docs/kinoite-rebase.de.md](docs/kinoite-rebase.de.md)
 
 ### 3) Backup einrichten
 
@@ -94,7 +94,7 @@ Backup-Zeitpläne (systemd user units) aktivieren:
 task restore:schedule
 ```
 
-Details: [docs/backup.md](docs/backup.md)
+Details: [docs/backup.de.md](docs/backup.de.md)
 
 ### 4) Restore auf einem frischen System
 
@@ -122,7 +122,7 @@ sudo systemctl reboot
 task restore:schedule
 ```
 
-Details: [docs/restore.md](docs/restore.md)
+Details: [docs/restore.de.md](docs/restore.de.md)
 
 ---
 
@@ -151,6 +151,6 @@ task --list
 
 ## Detaillierte Dokumentation
 
-- [docs/backup.md](docs/backup.md) — Backup-Workflow im Detail
-- [docs/restore.md](docs/restore.md) — Restore-Workflow im Detail
-- [docs/kinoite-rebase.md](docs/kinoite-rebase.md) — Image bauen, pushen und rebasen
+- [docs/backup.de.md](docs/backup.de.md) — Backup-Workflow im Detail
+- [docs/restore.de.md](docs/restore.de.md) — Restore-Workflow im Detail
+- [docs/kinoite-rebase.de.md](docs/kinoite-rebase.de.md) — Image bauen, pushen und rebasen
