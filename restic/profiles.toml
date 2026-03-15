@@ -12,6 +12,7 @@ one-file-system = true
 run-before = "/usr/bin/podman pause --all;$HOME/.local/share/backup/restic/hooks/export-layered-packages.sh && $HOME/.local/share/backup/restic/hooks/export-flatpaks.sh && $HOME/.local/share/backup/restic/hooks/export-vscode-extensions.sh"
 run-finally = "/usr/bin/podman unpause --all"
 schedule = "hourly"
+schedule-jitter = "2m"
 schedule-permission = "user_logged_on"
 source = ["/var/home/markus"]
 
