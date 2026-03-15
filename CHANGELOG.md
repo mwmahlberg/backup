@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1](https://github.com/mwmahlberg/backup/releases/tag/v0.8.1) (2026-03-15)
+
+
+### Features
+
+* add in-system auto-update channel workflow with `rpm-ostree` tasks ([75456a9](https://github.com/mwmahlberg/backup/commit/75456a9))
+* derive image tags from Dockerfile Fedora major and publish channel tags ([f2e63e7](https://github.com/mwmahlberg/backup/commit/f2e63e7))
+
+
+### Bug Fixes
+
+* simplify Dependabot PR auto-approval using `GITHUB_TOKEN` review message ([ea5e5a8](https://github.com/mwmahlberg/backup/commit/ea5e5a8))
+
+
+### Chores
+
+* bump GitHub Actions dependencies (`checkout`, `login-action`, `build-push-action`, `setup-buildx-action`, `github-script`) ([c7d2717](https://github.com/mwmahlberg/backup/commit/c7d2717))
+* align README table formatting ([0d1d4b8](https://github.com/mwmahlberg/backup/commit/0d1d4b8))
+
 ## [0.8.0](https://github.com/mwmahlberg/backup/releases/tag/v0.8.0) (2026-03-15)
 
 
