@@ -2,7 +2,7 @@ FROM quay.io/fedora-ostree-desktops/kinoite:43
 
 LABEL org.opencontainers.image.title="kinoite-workstation" \
     org.opencontainers.image.description="Custom Fedora Kinoite workstation image" \
-    org.opencontainers.image.url="https://github.com/mwmahlberg/backup" \
+    org.opencontainers.image.url="https://hub.docker.com/r/mwmahlberg/kinoite-workstation" \
     org.opencontainers.image.source="https://github.com/mwmahlberg/backup" \
     org.opencontainers.image.authors="Markus Mahlberg" \
     org.opencontainers.image.base.name="quay.io/fedora-ostree-desktops/kinoite:43"
@@ -62,19 +62,19 @@ RUN rpm-ostree install \
     alloy \
     code \
     direnv \
-    flatpak \
+    git \
+    go-task \
     gstreamer1-plugins-bad-freeworld \
     gstreamer1-plugins-ugly \
     intel-gpu-tools \
     intel-media-driver \
-    jq \
     libavcodec-freeworld \
     libva-utils \
-    podman \
     powertop \
     restic \
-    skopeo \
     vim-enhanced
+
+RUN ln -sf /usr/bin/go-task /usr/bin/task
 
 # Install git-flow-next (github.com/gittower/git-flow-next)
 RUN set -eu; \
@@ -86,10 +86,33 @@ RUN set -eu; \
     esac; \
     version="$(curl -fsSL https://api.github.com/repos/gittower/git-flow-next/releases/latest \
     | sed -n 's/^[[:space:]]*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"; \
+    tmpdir="$(mktemp -d)"; \
     curl -fsSL "https://github.com/gittower/git-flow-next/releases/download/${version}/git-flow-next-${version}-linux-${asset_arch}.tar.gz" \
-    | tar -xzf - --wildcards 'git-flow-*' --strip-components=0 -C /tmp; \
-    install -m 0755 /tmp/git-flow-* /usr/local/bin/git-flow; \
+    | tar -xzf - -C "$tmpdir"; \
+    bin_path="$(find "$tmpdir" -maxdepth 1 -type f -name 'git-flow*' | head -n1)"; \
+    [ -n "$bin_path" ] || { echo "git-flow binary not found in release archive" >&2; exit 1; }; \
+    install -m 0755 "$bin_path" /usr/bin/git-flow; \
+    rm -rf "$tmpdir"; \
     git-flow version
+
+# Install resticprofile (github.com/creativeprojects/resticprofile)
+RUN set -eu; \
+    arch="$(uname -m)"; \
+    case "$arch" in \
+    x86_64)  asset_arch=amd64 ;; \
+    aarch64) asset_arch=arm64 ;; \
+    *)       echo "Unsupported arch: $arch" >&2; exit 1 ;; \
+    esac; \
+    version="$(curl -fsSL https://api.github.com/repos/creativeprojects/resticprofile/releases/latest \
+    | sed -n 's/^[[:space:]]*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"; \
+    curl -fsSL "https://github.com/creativeprojects/resticprofile/releases/download/${version}/resticprofile_${version#v}_linux_${asset_arch}.tar.gz" \
+    | tar -xzf - -C /tmp resticprofile; \
+    install -m 0755 /tmp/resticprofile /usr/bin/resticprofile; \
+    resticprofile version
+
+# Ship a backup initializer in the image. Profiles are user-managed.
+COPY restore/backup-init.sh /usr/bin/backup-init
+RUN chmod 0755 /usr/bin/backup-init
 
 # Commit the resulting ostree container layer.
 RUN ostree container commit
