@@ -61,6 +61,7 @@ RUN if ! getent group alloy >/dev/null 2>&1; then groupadd -r alloy; fi \
 RUN rpm-ostree install \
     alloy \
     code \
+    cosign \
     direnv \
     git \
     go-task \
