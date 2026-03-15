@@ -18,6 +18,7 @@ Notes:
 
 - Pin the Fedora release (`:42`, `:43`, etc.) to match your target lifecycle.
 - Keep this image focused on system packages and system config only.
+- `Containerfile.kinoite` enables RPM Fusion and the Microsoft VS Code repo before package installation.
 
 ## 2) Build and push the image
 
@@ -63,14 +64,47 @@ DIGEST="$(skopeo inspect --format '{{.Digest}}' "docker://$IMAGE")"
 echo "$DIGEST"
 ```
 
-## 4) Rebase a host to the image
+## 4) Configure signature policy on target hosts
+
+Install verification tools on each target host:
+
+```bash
+sudo rpm-ostree install cosign skopeo
+sudo systemctl reboot
+```
+
+Copy your public verification key to the host, for example:
+
+```bash
+sudo install -D -m 0644 ./cosign.pub /etc/pki/containers/cosign.pub
+```
+
+Configure `/etc/containers/policy.json` to require sigstore signatures for your registry namespace:
+
+```json
+{
+	"default": [{ "type": "reject" }],
+	"transports": {
+		"docker": {
+			"ghcr.io/<your-user>": [
+				{
+					"type": "sigstoreSigned",
+					"keyPath": "/etc/pki/containers/cosign.pub"
+				}
+			]
+		}
+	}
+}
+```
+
+## 5) Rebase a host to the image
 
 On a Kinoite host:
 
 ```bash
 export IMAGE="ghcr.io/<your-user>/kinoite-workstation:latest"
 export DIGEST="$(skopeo inspect --format '{{.Digest}}' "docker://$IMAGE")"
-sudo rpm-ostree rebase "ostree-unverified-registry:${IMAGE%@*}@${DIGEST}"
+sudo rpm-ostree rebase "ostree-image-signed:docker://${IMAGE%@*}@${DIGEST}"
 sudo systemctl reboot
 ```
 
@@ -80,9 +114,7 @@ After reboot, verify:
 rpm-ostree status
 ```
 
-`ostree-unverified-registry:` does not enforce signature checks by itself. Pair it with `cosign verify` in your rollout process.
-
-## 5) Update hosts when image changes
+## 6) Update hosts when image changes
 
 After pushing a newer tag:
 
@@ -91,14 +123,14 @@ sudo rpm-ostree upgrade
 sudo systemctl reboot
 ```
 
-## 6) Rollback if needed
+## 7) Rollback if needed
 
 ```bash
 sudo rpm-ostree rollback
 sudo systemctl reboot
 ```
 
-## 7) Integrate with this backup repo
+## 8) Integrate with this backup repo
 
 Recommended flow:
 
@@ -114,3 +146,27 @@ git -C ~/.local/share/backup pull --ff-only
 ## Security note
 
 Treat image signing keys as production secrets. Store `cosign.key` outside this repository and rotate keys if compromise is suspected.
+
+## Troubleshooting build errors
+
+If build fails with `Packages not found`:
+
+- verify you are using the repository's current `Containerfile.kinoite`
+- ensure external repos were added before `rpm-ostree install` packages
+- check package naming differences across Fedora versions (for example `intel-media-driver-free` vs older names)
+- keep signing tools (`cosign`) on the build host; it is not required inside the Kinoite runtime image
+
+If rebase fails with `Package 'rpmfusion-...-release' is already in the base`:
+
+- remove layered release packages on the target before rebasing:
+
+```bash
+sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release
+sudo systemctl reboot
+```
+
+- or use rebase-time overrides:
+
+```bash
+sudo rpm-ostree rebase --uninstall=rpmfusion-free-release --uninstall=rpmfusion-nonfree-release "ostree-unverified-registry:ghcr.io/<your-user>/kinoite-workstation@sha256:<digest>"
+```
