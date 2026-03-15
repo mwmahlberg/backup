@@ -90,7 +90,7 @@ sudo systemctl reboot
 1. `task image:push` - build and push image
 2. `task system:rebase` - rebase system (digest-pinned)
 3. reboot
-4. `task restore:run` - restore home from snapshot (if needed)
+4. `backup-task restore:full` - restore home from snapshot (if needed)
 
 ## Troubleshooting
 

@@ -16,6 +16,7 @@ The default profile:
 ## Prerequisites
 
 - Custom Kinoite image is active (`restic`, `resticprofile`, and `task` are already included)
+- Bundled backup code is available under `/usr/share/backup` (accessible via `backup-task`)
 - `~/.config/restic/password` exists
 - `~/.config/restic/env` exists with S3 credentials
 
@@ -31,7 +32,7 @@ Create config automatically:
 
 ```bash
 RESTIC_REPOSITORY=... AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... RESTIC_PASSWORD=... \
-  task restore:init
+  backup-task setup:first-boot
 ```
 
 ## Profile Behavior
@@ -85,7 +86,7 @@ restic -r "$RESTIC_REPOSITORY" --password-file ~/.config/restic/password snapsho
 Enable schedules (after initial setup or after restore):
 
 ```bash
-task restore:schedule
+backup-task restore:schedule
 ```
 
 Directly via `resticprofile`:

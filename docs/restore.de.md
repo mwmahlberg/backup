@@ -2,7 +2,8 @@
 
 Restore-Anleitung für ein frisch installiertes System mit dem Custom Kinoite-Image.
 
-Das Image enthält bereits `restic`, `resticprofile` und `task` – keine manuelle Tool-Installation nötig.
+Das Image enthält bereits `restic`, `resticprofile` und `task`.
+Zusätzlich wird der notwendige Backup-Code unter `/usr/share/backup` mitgeliefert, aufrufbar über `backup-task`.
 
 ## Überblick
 
@@ -37,25 +38,21 @@ damit laufende Desktop-Prozesse keine Dateien überschreiben, die gerade zurück
 ## Schnellstart (Kurzcheckliste)
 
 ```bash
-# 1. Repo klonen
-git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-cd ~/.local/share/backup
-
-# 2. Konfiguration anlegen (Zugangsdaten aus USB-Stick / Passwort-Manager)
+# 1. Konfiguration anlegen (Zugangsdaten aus USB-Stick / Passwort-Manager)
 RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   AWS_ACCESS_KEY_ID=your-access-key \
   AWS_SECRET_ACCESS_KEY=your-secret-key \
   RESTIC_PASSWORD=your-restic-password \
-  task restore:init
+  backup-task restore:init
 
-# 3. Restore ausführen
-task restore:run
+# 2. Restore ausführen
+backup-task restore:full
 
-# 4. Neu starten
+# 3. Neu starten
 sudo systemctl reboot
 
-# 5. Nach Reboot: Backup-Zeitpläne aktivieren
-task restore:schedule
+# 4. Nach Reboot: Backup-Zeitpläne aktivieren
+backup-task restore:schedule
 ```
 
 ## Schritt für Schritt
@@ -63,24 +60,17 @@ task restore:schedule
 ### 1) Konfiguration anlegen
 
 ```bash
-git clone https://github.com/mwmahlberg/backup.git ~/.local/share/backup
-cd ~/.local/share/backup
-```
-
-```bash
 RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   AWS_ACCESS_KEY_ID=your-access-key \
   AWS_SECRET_ACCESS_KEY=your-secret-key \
   RESTIC_PASSWORD=your-restic-password \
-  task restore:init
+  backup-task restore:init
 ```
 
 `restore:init` legt an:
 - `~/.config/restic/password` (chmod 600)
 - `~/.config/restic/env` (chmod 600)
 - `~/.config/resticprofile/profiles.toml` (Symlink auf `restic/profiles.toml`)
-
-Falls das Repository bereits vorhanden ist, führt `restore:init` stattdessen `git pull` aus.
 
 ### 2) Snapshots prüfen (optional)
 
@@ -97,7 +87,7 @@ restic \
 Neuesten Snapshot:
 
 ```bash
-task restore:run
+backup-task restore:run
 ```
 
 Bestimmte Snapshot-ID (manuell via `resticprofile`):
@@ -108,13 +98,7 @@ resticprofile -c ~/.local/share/backup/restic/profiles.toml restore 70e69674
 
 `restore/bootstrap.sh` wird automatisch nach erfolgreichem Restore ausgeführt und stellt layered Pakete, Flatpaks und VS Code Extensions wieder her.
 
-### 4) Repo aktualisieren (falls aus älterem Snapshot)
-
-```bash
-git -C ~/.local/share/backup pull --ff-only
-```
-
-### 5) Neu starten und prüfen
+### 4) Neu starten und prüfen
 
 ```bash
 sudo systemctl reboot
@@ -122,10 +106,10 @@ sudo systemctl reboot
 
 Nach Reboot: Shell-Konfiguration, Dotfiles, Projektverzeichnisse und Anwendungen prüfen.
 
-### 6) Backup-Zeitpläne reaktivieren
+### 5) Backup-Zeitpläne reaktivieren
 
 ```bash
-task restore:schedule
+backup-task restore:schedule
 ```
 
 Optional, damit Timer auch ohne aktive Login-Session laufen:
@@ -139,7 +123,7 @@ loginctl enable-linger "$USER"
 Falls `bootstrap.sh` erneut ausgeführt werden soll (z. B. nach partiell fehlgeschlagenen Paket-Installationen):
 
 ```bash
-task restore:bootstrap
+backup-task restore:bootstrap
 ```
 
 ## Zustandsdateien
