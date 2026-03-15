@@ -39,6 +39,14 @@ tasks:
       the Containerfile as a source so task can skip the build when nothing relevant changed.
     sources:
       - "{{.CONTAINERFILE}}"
+      - Taskfile.yml
+      - .taskrc.yml
+      - .task/*.yml
+      - restic/**/*
+      - restore/**/*
+      - docs/**/*
+      - README.md
+      - README.de.md
     cmds:
       - podman build -t "{{.IMAGE}}" -f "{{.CONTAINERFILE}}" .
 
