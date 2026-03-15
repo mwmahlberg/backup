@@ -7,7 +7,7 @@ prevent-sleep = true
 env-file = "$HOME/.config/restic/env"
 lock-wait = "10m"
 password-file = "$HOME/.config/restic/password"
-repository = "s3:fra1.digitaloceanspaces.com/mwmbackups"
+repository = "$RESTIC_REPOSITORY"
 [default.backup]
 compression = "max"
 exclude-if-present = [".resticignore", ".nobackup", ".backupignore"]
