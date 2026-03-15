@@ -11,6 +11,15 @@ vars:
     sh: printf '%s' "${CHANNEL_DEV_IMAGE:-docker.io/mwmahlberg/kinoite-workstation:43-dev}"
 
 tasks:
+  auto-update:install:
+    desc: Install and enable staged auto-updates with desktop notifications
+    summary: |
+      Convenience task that enables staged rpm-ostree auto-updates and installs
+      the desktop notification hook for newly staged deployments.
+    deps:
+      - auto-update:enable
+      - auto-update:notify:install
+
   rebase:
     desc: Rebase the local system to the current image digest
     summary: |
@@ -94,3 +103,27 @@ tasks:
     cmds:
       - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" schedule --all --start --reload
       - systemctl --user list-timers '*resticprofile*'
+
+  auto-update:notify:install:
+    desc: Install desktop notification service for staged rpm-ostree updates
+    summary: |
+      Installs the rpm-ostree-notify.sh script to /usr/local/bin and the systemd unit
+      plus drop-in to /etc/systemd/system, then reloads the daemon. After this, every
+      run of rpm-ostreed-automatic.service will trigger a desktop notification if a
+      new image has been staged.
+    cmds:
+      - sudo install -Dm755 systemd/rpm-ostree-notify.sh /usr/local/bin/rpm-ostree-notify.sh
+      - sudo install -Dm644 systemd/rpm-ostree-notify.service /etc/systemd/system/rpm-ostree-notify.service
+      - sudo install -Dm644 systemd/rpm-ostreed-automatic.service.d/notify.conf /etc/systemd/system/rpm-ostreed-automatic.service.d/notify.conf
+      - sudo systemctl daemon-reload
+
+  auto-update:notify:uninstall:
+    desc: Remove the staged rpm-ostree update desktop notification service
+    summary: |
+      Removes the notification script, systemd unit, and the drop-in so
+      rpm-ostreed-automatic.service no longer triggers notifications.
+    cmds:
+      - sudo rm -f /usr/local/bin/rpm-ostree-notify.sh
+      - sudo rm -f /etc/systemd/system/rpm-ostree-notify.service
+      - sudo rm -f /etc/systemd/system/rpm-ostreed-automatic.service.d/notify.conf
+      - sudo systemctl daemon-reload
