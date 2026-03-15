@@ -12,7 +12,7 @@ No `git clone` required. The required code is shipped in the image under `/usr/s
 backup-task setup:first-boot
 backup-task restore:full
 sudo systemctl reboot
-backup-task restore:schedule
+backup-task system:schedule
 backup-task doctor
 ```
 
@@ -92,10 +92,10 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   backup-task setup:first-boot
 ```
 
-Alternative (interactive):
+Alternative (same task, variables are prompted interactively):
 
 ```bash
-backup-task restore:init:interactive
+backup-task restore:init
 ```
 
 Details: [docs/backup.md](docs/backup.md)
@@ -120,7 +120,7 @@ After restore:
 ```bash
 sudo systemctl reboot
 # after reboot:
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 Details: [docs/restore.md](docs/restore.md)
@@ -131,18 +131,17 @@ Details: [docs/restore.md](docs/restore.md)
 
 `backup-task help` shows the guided entrypoint.
 
-| Task                       | Description                                                   |
-| -------------------------- | ------------------------------------------------------------- |
-| `help`                     | Guided entrypoint for common workflows                        |
-| `doctor`                   | Validate prerequisites                                        |
-| `secrets:check`            | Validate presence/permissions of restic secret files          |
-| `backup:seed`              | Copy bundled code from `/usr/share/backup` to user directory  |
-| `setup:first-boot`         | One-command first-boot setup                                  |
-| `restore:init`             | Create restic config from env vars                            |
-| `restore:init:interactive` | Create restic config interactively                            |
-| `restore:full`             | Full restore with next-step hints                             |
-| `restore:bootstrap`        | Manually re-apply workstation state                           |
-| `restore:schedule`         | Re-enable backup schedules after restore                      |
+| Task                | Description                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| `help`              | Guided entrypoint for common workflows                       |
+| `doctor`            | Validate prerequisites                                       |
+| `secrets:setup`     | Create restic secret files                                   |
+| `secrets:check`     | Validate presence/permissions of restic secret files         |
+| `setup:first-boot`  | One-command first-boot setup                                 |
+| `restore:init`      | Create restic config from env vars                           |
+| `restore:full`      | Full restore with next-step hints                            |
+| `restore:bootstrap` | Manually re-apply workstation state                          |
+| `system:schedule`   | Re-enable backup schedules after restore                     |
 
 ---
 

@@ -52,7 +52,7 @@ backup-task restore:full
 sudo systemctl reboot
 
 # 4. After reboot: re-enable backup schedules
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 ## Step by Step
@@ -109,7 +109,7 @@ After reboot, verify shell config, dotfiles, project directories, and applicatio
 ### 5) Re-enable backup schedules
 
 ```bash
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 Optional, to run timers without an active login session:

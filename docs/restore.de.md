@@ -52,7 +52,7 @@ backup-task restore:full
 sudo systemctl reboot
 
 # 4. Nach Reboot: Backup-Zeitpläne aktivieren
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 ## Schritt für Schritt
@@ -109,7 +109,7 @@ Nach Reboot: Shell-Konfiguration, Dotfiles, Projektverzeichnisse und Anwendungen
 ### 5) Backup-Zeitpläne reaktivieren
 
 ```bash
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 Optional, damit Timer auch ohne aktive Login-Session laufen:

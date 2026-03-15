@@ -86,7 +86,7 @@ restic -r "$RESTIC_REPOSITORY" --password-file ~/.config/restic/password snapsho
 Enable schedules (after initial setup or after restore):
 
 ```bash
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 Directly via `resticprofile`:

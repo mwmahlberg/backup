@@ -10,7 +10,7 @@ Kein `git clone` nötig, da der notwendige Code im Image unter `/usr/share/backu
 backup-task setup:first-boot
 backup-task restore:full
 sudo systemctl reboot
-backup-task restore:schedule
+backup-task system:schedule
 backup-task doctor
 ```
 
@@ -90,10 +90,10 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   backup-task setup:first-boot
 ```
 
-Alternative (interaktiv):
+Alternative (gleicher Task, Variablen werden interaktiv abgefragt):
 
 ```bash
-backup-task restore:init:interactive
+backup-task restore:init
 ```
 
 Details: [docs/backup.de.md](docs/backup.de.md)
@@ -118,7 +118,7 @@ Nach dem Restore:
 ```bash
 sudo systemctl reboot
 # nach Reboot:
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 Details: [docs/restore.de.md](docs/restore.de.md)
@@ -129,18 +129,17 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 
 `backup-task help` zeigt den geführten Einstieg.
 
-| Task                       | Beschreibung                                                   |
-| -------------------------- | -------------------------------------------------------------- |
-| `help`                     | Geführter Einstieg für Standard-Workflows                      |
-| `doctor`                   | Voraussetzungen prüfen                                          |
-| `secrets:check`            | Vorhandensein/Rechte von Restic-Secrets prüfen                 |
-| `backup:seed`              | Code aus `/usr/share/backup` nach `~/.local/share/backup` kopieren |
-| `setup:first-boot`         | One-command Ersteinrichtung                                    |
-| `restore:init`             | Restic-Konfiguration über Env-Variablen anlegen               |
-| `restore:init:interactive` | Restic-Konfiguration interaktiv anlegen                        |
-| `restore:full`             | Vollständiger Restore mit Next-Step-Hinweis                    |
-| `restore:bootstrap`        | Workstation-Zustand manuell erneut anwenden                    |
-| `restore:schedule`         | Backup-Zeitpläne nach Restore reaktivieren                     |
+| Task                | Beschreibung                                                       |
+| ------------------- | ------------------------------------------------------------------ |
+| `help`              | Geführter Einstieg für Standard-Workflows                          |
+| `doctor`            | Voraussetzungen prüfen                                             |
+| `secrets:setup`     | Restic-Secret-Dateien anlegen                                      |
+| `secrets:check`     | Vorhandensein/Rechte von Restic-Secrets prüfen                     |
+| `setup:first-boot`  | One-command Ersteinrichtung                                        |
+| `restore:init`      | Restic-Konfiguration über Env-Variablen anlegen                    |
+| `restore:full`      | Vollständiger Restore mit Next-Step-Hinweis                        |
+| `restore:bootstrap` | Workstation-Zustand manuell erneut anwenden                        |
+| `system:schedule`   | Backup-Zeitpläne nach Restore reaktivieren                         |
 
 ---
 

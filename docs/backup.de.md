@@ -86,7 +86,7 @@ restic -r "$RESTIC_REPOSITORY" --password-file ~/.config/restic/password snapsho
 Zeitpläne aktivieren (nach Ersteinrichtung oder nach Restore):
 
 ```bash
-backup-task restore:schedule
+backup-task system:schedule
 ```
 
 Zeitpläne direkt mit `resticprofile`:
