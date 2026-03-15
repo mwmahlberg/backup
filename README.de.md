@@ -1,6 +1,6 @@
 # backup
 
-Custom Fedora Kinoite Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
+Custom Fedora Kinoite/Silverblue Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
 
 ## Schnellstart (5 Befehle)
 
@@ -51,9 +51,9 @@ AWS_SECRET_ACCESS_KEY=your-secret-key
 
 ## Gesamter Workflow
 
-### 1) Basisinstallation: Fedora Kinoite
+### 1) Basisinstallation: Fedora Kinoite oder Silverblue
 
-Fedora Kinoite normal installieren. Nach dem ersten Boot weiter mit Schritt 2.
+Fedora Kinoite oder Silverblue normal installieren. Nach dem ersten Boot weiter mit Schritt 2.
 
 ### 2) Rebase auf das eigene Image
 

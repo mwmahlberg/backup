@@ -53,9 +53,9 @@ AWS_SECRET_ACCESS_KEY=your-secret-key
 
 ## End-to-End Workflow
 
-### 1) Base installation: Fedora Kinoite
+### 1) Base installation: Fedora Kinoite or Silverblue
 
-Install Fedora Kinoite as usual. After first boot, continue with step 2.
+Install Fedora Kinoite or Silverblue as usual. After first boot, continue with step 2.
 
 ### 2) Rebase to your custom image
 
