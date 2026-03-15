@@ -20,7 +20,7 @@ backup-task doctor
 
 | Path                    | Purpose                                                                    |
 | ----------------------- | -------------------------------------------------------------------------- |
-| `Containerfile.kinoite` | Custom Kinoite image (packages, repos, tools)                              |
+| `Dockerfile` | Custom Kinoite image (packages, repos, tools)                              |
 | `Taskfile.yml`          | Task automation (`task`) for build, push, rebase, and restore              |
 | `restic/profiles.toml`  | resticprofile configuration (backup, check, forget, restore)               |
 | `restic/hooks/`         | Hooks that export packages, Flatpaks, and VS Code extensions before backup |

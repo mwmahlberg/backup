@@ -4,9 +4,9 @@ Kinoite-Image bauen, pushen und auf Zielsystemen anwenden.
 
 Das Custom-Image ergänzt die Home-Sicherung mit `restic`: es stellt den System-Layer (`/usr`) wieder her, während Restic `$HOME` wiederherstellt.
 
-## 1) Containerfile anpassen
+## 1) Dockerfile anpassen
 
-`Containerfile.kinoite` im Repository-Root enthält alle Pakete, Repos und Tools.
+`Dockerfile` im Repository-Root enthält alle Pakete, Repos und Tools.
 
 Hinweise:
 - Fedora-Release (`:43` usw.) an den Zielhost anpassen.
@@ -19,12 +19,12 @@ Hinweise:
 task image:push
 ```
 
-`image:push` baut bei Bedarf automatisch neu (Quelldatei-Tracking auf `Containerfile.kinoite`) und loggt sich vorher ein.
+`image:push` baut bei Bedarf automatisch neu (Quelldatei-Tracking auf `Dockerfile`) und loggt sich vorher ein.
 
 Manuell (ohne Task):
 
 ```bash
-podman build -t docker.io/mwmahlberg/kinoite-workstation:43 -f Containerfile.kinoite .
+podman build -t docker.io/mwmahlberg/kinoite-workstation:43 -f Dockerfile .
 podman push docker.io/mwmahlberg/kinoite-workstation:43
 ```
 
@@ -98,7 +98,7 @@ sudo systemctl reboot
 ## Troubleshooting
 
 **Build schlägt fehl mit `Packages not found`:**
-- Repo-Definitionen in `Containerfile.kinoite` prüfen
+- Repo-Definitionen in `Dockerfile` prüfen
 - Paketnamen können je Fedora-Version abweichen
 
 **Rebase schlägt fehl mit `Package 'rpmfusion-...-release' is already in the base`:**
