@@ -53,7 +53,8 @@ cosign verify --key cosign.pub docker.io/mwmahlberg/kinoite-workstation:latest
 
 ## 4) First rebase (manual)
 
-On the first rebase, `task` may not be available yet, so use `rpm-ostree` directly:
+On the first rebase, the starting base can be Fedora Kinoite or Silverblue.
+`task` may not be available yet, so use `rpm-ostree` directly:
 
 ```bash
 sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:latest
@@ -91,6 +92,8 @@ sudo systemctl reboot
 2. `task system:rebase` - rebase system (digest-pinned)
 3. reboot
 4. `backup-task restore:full` - restore home from snapshot (if needed)
+5. reboot
+6. `backup-task system:schedule` - re-enable backup timers
 
 ## Troubleshooting
 

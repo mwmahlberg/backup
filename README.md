@@ -92,7 +92,7 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   backup-task setup:first-boot
 ```
 
-Alternative (same task, variables are prompted interactively):
+Alternative (only config setup, without repo init and schedule activation):
 
 ```bash
 backup-task restore:init

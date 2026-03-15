@@ -1,6 +1,6 @@
 # backup
 
-Custom Fedora Kinoite/Silverblue Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
+Custom Fedora Kinoite Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
 
 ## Schnellstart (5 Befehle)
 
@@ -90,7 +90,7 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   backup-task setup:first-boot
 ```
 
-Alternative (gleicher Task, Variablen werden interaktiv abgefragt):
+Alternative (nur Konfiguration anlegen, ohne Repository-Init und Schedule-Aktivierung):
 
 ```bash
 backup-task restore:init
