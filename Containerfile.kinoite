@@ -1,24 +1,24 @@
 FROM quay.io/fedora-ostree-desktops/kinoite:43
 
 # Enable RPM Fusion and VS Code repository inside the image build.
-RUN cat > /etc/yum.repos.d/rpmfusion-free.repo <<'EOF'
+RUN echo "rpmfusion-free-key-2020" >/dev/null && cat > /etc/yum.repos.d/rpmfusion-free.repo <<'EOF'
 [rpmfusion-free]
 name=RPM Fusion for Fedora $releasever - Free
 metalink=https://mirrors.rpmfusion.org/metalink?repo=free-fedora-$releasever&arch=$basearch
 enabled=1
 gpgcheck=1
 repo_gpgcheck=0
-gpgkey=https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-free-fedora-$releasever
+gpgkey=https://download1.rpmfusion.org/free/fedora/RPM-GPG-KEY-rpmfusion-free-fedora-2020
 EOF
 
-RUN cat > /etc/yum.repos.d/rpmfusion-nonfree.repo <<'EOF'
+RUN echo "rpmfusion-nonfree-key-2020" >/dev/null && cat > /etc/yum.repos.d/rpmfusion-nonfree.repo <<'EOF'
 [rpmfusion-nonfree]
 name=RPM Fusion for Fedora $releasever - Nonfree
 metalink=https://mirrors.rpmfusion.org/metalink?repo=nonfree-fedora-$releasever&arch=$basearch
 enabled=1
 gpgcheck=1
 repo_gpgcheck=0
-gpgkey=https://rpmfusion.org/keys?action=AttachFile&do=get&target=RPM-GPG-KEY-rpmfusion-nonfree-fedora-$releasever
+gpgkey=https://download1.rpmfusion.org/nonfree/fedora/RPM-GPG-KEY-rpmfusion-nonfree-fedora-2020
 EOF
 
 RUN cat > /etc/yum.repos.d/vscode.repo <<'EOF'
@@ -45,6 +45,11 @@ gpgkey=https://rpm.grafana.com/gpg.key
 sslverify=1
 sslcacert=/etc/pki/tls/certs/ca-bundle.crt
 EOF
+
+# Avoid alloy %post useradd noise in rpm-ostree scriptlet sandbox by creating the account ahead of install.
+RUN if ! getent group alloy >/dev/null 2>&1; then groupadd -r alloy; fi \
+    && if ! getent passwd alloy >/dev/null 2>&1; then useradd -r -m -g alloy -d /var/lib/alloy -s /sbin/nologin -c "alloy user" alloy; fi
+
 # Base workstation tools expected by this repository's backup and restore flow.
 RUN rpm-ostree install \
     alloy \
