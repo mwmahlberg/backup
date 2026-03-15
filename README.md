@@ -131,17 +131,17 @@ Details: [docs/restore.md](docs/restore.md)
 
 `backup-task help` shows the guided entrypoint.
 
-| Task                | Description                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| `help`              | Guided entrypoint for common workflows                       |
-| `doctor`            | Validate prerequisites                                       |
-| `secrets:setup`     | Create restic secret files                                   |
-| `secrets:check`     | Validate presence/permissions of restic secret files         |
-| `setup:first-boot`  | One-command first-boot setup                                 |
-| `restore:init`      | Create restic config from env vars                           |
-| `restore:full`      | Full restore with next-step hints                            |
-| `restore:bootstrap` | Manually re-apply workstation state                          |
-| `system:schedule`   | Re-enable backup schedules after restore                     |
+| Task                | Description                                          |
+| ------------------- | ---------------------------------------------------- |
+| `help`              | Guided entrypoint for common workflows               |
+| `doctor`            | Validate prerequisites                               |
+| `secrets:setup`     | Create restic secret files                           |
+| `secrets:check`     | Validate presence/permissions of restic secret files |
+| `setup:first-boot`  | One-command first-boot setup                         |
+| `restore:init`      | Create restic config from env vars                   |
+| `restore:full`      | Full restore with next-step hints                    |
+| `restore:bootstrap` | Manually re-apply workstation state                  |
+| `system:schedule`   | Re-enable backup schedules after restore             |
 
 ---
 
