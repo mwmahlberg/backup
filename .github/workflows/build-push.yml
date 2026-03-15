@@ -14,12 +14,23 @@ on:
 
 jobs:
   build-push:
-    name: Build and push Kinoite image
+    name: Build and push Kinoite image (Fedora ${{ matrix.fedora_major }})
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora_major: [43, 44]
+        include:
+          - fedora_major: 43
+            packages: "alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-gpu-tools intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
+            is_latest: true
+          - fedora_major: 44
+            packages: "alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
+            is_latest: false
 
     steps:
       - name: Checkout
@@ -36,21 +47,19 @@ jobs:
             branch="${GITHUB_BASE_REF}"
           fi
 
-          fedora_tag="$(grep -E '^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:' Dockerfile | head -n1 | sed -E 's#^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:([^[:space:]]+).*$#\1#')"
-          fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
-
           if [ "${branch}" = "main" ]; then
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}"
+            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${{ matrix.fedora_major }}"
             channel_tag="docker.io/mwmahlberg/kinoite-workstation:stable"
           else
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}-dev"
+            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${{ matrix.fedora_major }}-dev"
             channel_tag="docker.io/mwmahlberg/kinoite-workstation:dev"
           fi
 
-          echo "primary-tag=${primary_tag}" >> "${GITHUB_OUTPUT}"
           echo "tags<<EOF" >> "${GITHUB_OUTPUT}"
           echo "${primary_tag}" >> "${GITHUB_OUTPUT}"
-          echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          if [ "${{ matrix.is_latest }}" = "true" ]; then
+            echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          fi
           echo "EOF" >> "${GITHUB_OUTPUT}"
 
       - name: Resolve push policy
@@ -61,18 +70,13 @@ jobs:
             branch="${GITHUB_BASE_REF}"
           fi
 
-          fedora_tag="$(grep -E '^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:' Dockerfile | head -n1 | sed -E 's#^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:([^[:space:]]+).*$#\1#')"
-          fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
-
           should_push="false"
           if [ "${GITHUB_EVENT_NAME}" = "push" ] && { [ "${branch}" = "main" ] || [ "${branch}" = "develop" ]; }; then
             should_push="true"
           fi
 
-          echo "fedora_tag=${fedora_tag}" >> "${GITHUB_OUTPUT}"
-          echo "fedora_major=${fedora_major}" >> "${GITHUB_OUTPUT}"
           echo "should-push=${should_push}" >> "${GITHUB_OUTPUT}"
-          echo "Push policy: branch=${branch}, fedora_tag=${fedora_tag}, should_push=${should_push}"
+          echo "Push policy: branch=${branch}, fedora_major=${{ matrix.fedora_major }}, should_push=${should_push}"
 
       - name: Log in to Docker Hub
         if: steps.push-policy.outputs.should-push == 'true'
@@ -86,21 +90,33 @@ jobs:
         with:
           context: .
           file: Dockerfile
+          pull: true
           push: ${{ steps.push-policy.outputs.should-push == 'true' }}
           tags: ${{ steps.image-tag.outputs.tags }}
+          build-args: |
+            FEDORA_MAJOR_VERSION=${{ matrix.fedora_major }}
+            RPM_PACKAGES=${{ matrix.packages }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  scheduled-rebuild-43:
-    name: Daily rebuild Fedora 43 (${{ matrix.branch }})
+  scheduled-rebuild:
+    name: Daily rebuild Fedora ${{ matrix.fedora_major }} (${{ matrix.branch }})
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        fedora_major: [43, 44]
         branch:
           - main
           - develop
+        include:
+          - fedora_major: 43
+            packages: "alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-gpu-tools intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
+            is_latest: true
+          - fedora_major: 44
+            packages: "alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
+            is_latest: false
     permissions:
       contents: read
       packages: write
@@ -118,36 +134,23 @@ jobs:
         id: image-tag
         run: |
           branch="${{ matrix.branch }}"
-          fedora_tag="$(grep -E '^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:' Dockerfile | head -n1 | sed -E 's#^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:([^[:space:]]+).*$#\1#')"
-          fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
 
           if [ "${branch}" = "main" ]; then
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}"
+            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${{ matrix.fedora_major }}"
             channel_tag="docker.io/mwmahlberg/kinoite-workstation:stable"
           else
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}-dev"
+            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${{ matrix.fedora_major }}-dev"
             channel_tag="docker.io/mwmahlberg/kinoite-workstation:dev"
           fi
 
-          echo "fedora_major=${fedora_major}" >> "${GITHUB_OUTPUT}"
           echo "tags<<EOF" >> "${GITHUB_OUTPUT}"
           echo "${primary_tag}" >> "${GITHUB_OUTPUT}"
-          echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          if [ "${{ matrix.is_latest }}" = "true" ]; then
+            echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          fi
           echo "EOF" >> "${GITHUB_OUTPUT}"
 
-      - name: Resolve push policy
-        id: push-policy
-        run: |
-          should_push="false"
-          if [ "${{ steps.image-tag.outputs.fedora_major }}" = "43" ]; then
-            should_push="true"
-          fi
-
-          echo "should-push=${should_push}" >> "${GITHUB_OUTPUT}"
-          echo "Scheduled policy: branch=${{ matrix.branch }}, fedora_major=${{ steps.image-tag.outputs.fedora_major }}, should_push=${should_push}"
-
       - name: Log in to Docker Hub
-        if: steps.push-policy.outputs.should-push == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -158,7 +161,11 @@ jobs:
         with:
           context: .
           file: Dockerfile
-          push: ${{ steps.push-policy.outputs.should-push == 'true' }}
+          pull: true
+          push: true
           tags: ${{ steps.image-tag.outputs.tags }}
+          build-args: |
+            FEDORA_MAJOR_VERSION=${{ matrix.fedora_major }}
+            RPM_PACKAGES=${{ matrix.packages }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

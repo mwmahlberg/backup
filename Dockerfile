@@ -1,11 +1,18 @@
-FROM quay.io/fedora-ostree-desktops/kinoite:43
+ARG FEDORA_MAJOR_VERSION=43
+ARG RPM_PACKAGES="alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-gpu-tools intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
+
+FROM quay.io/fedora-ostree-desktops/kinoite:${FEDORA_MAJOR_VERSION}
+
+# Re-declare ARGs after FROM so they remain accessible in subsequent instructions.
+ARG FEDORA_MAJOR_VERSION=43
+ARG RPM_PACKAGES="alloy code direnv git go-task gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly intel-gpu-tools intel-media-driver libavcodec-freeworld libva-utils powertop restic vim-enhanced"
 
 LABEL org.opencontainers.image.title="kinoite-workstation" \
     org.opencontainers.image.description="Custom Fedora Kinoite workstation image" \
     org.opencontainers.image.url="https://hub.docker.com/r/mwmahlberg/kinoite-workstation" \
     org.opencontainers.image.source="https://github.com/mwmahlberg/backup" \
     org.opencontainers.image.authors="Markus Mahlberg" \
-    org.opencontainers.image.base.name="quay.io/fedora-ostree-desktops/kinoite:43"
+    org.opencontainers.image.base.name="quay.io/fedora-ostree-desktops/kinoite:${FEDORA_MAJOR_VERSION}"
 
 # Enable RPM Fusion and VS Code repository inside the image build.
 RUN echo "rpmfusion-free-key-2020" >/dev/null && cat > /etc/yum.repos.d/rpmfusion-free.repo <<'EOF'
@@ -50,7 +57,6 @@ enabled=1
 gpgcheck=1
 gpgkey=https://rpm.grafana.com/gpg.key
 sslverify=1
-sslcacert=/etc/pki/tls/certs/ca-bundle.crt
 EOF
 
 # Avoid alloy %post useradd noise in rpm-ostree scriptlet sandbox by creating the account ahead of install.
@@ -58,21 +64,9 @@ RUN if ! getent group alloy >/dev/null 2>&1; then groupadd -r alloy; fi \
     && if ! getent passwd alloy >/dev/null 2>&1; then useradd -r -m -g alloy -d /var/lib/alloy -s /sbin/nologin -c "alloy user" alloy; fi
 
 # Base workstation tools expected by this repository's backup and restore flow.
-RUN rpm-ostree install \
-    alloy \
-    code \
-    direnv \
-    git \
-    go-task \
-    gstreamer1-plugins-bad-freeworld \
-    gstreamer1-plugins-ugly \
-    intel-gpu-tools \
-    intel-media-driver \
-    libavcodec-freeworld \
-    libva-utils \
-    powertop \
-    restic \
-    vim-enhanced
+# Keep layering container-safe; fresh base updates are handled by image pulls in build tooling.
+# Override via the RPM_PACKAGES build argument: --build-arg RPM_PACKAGES="pkg1 pkg2 ..."
+RUN rpm-ostree install ${RPM_PACKAGES}
 
 RUN ln -sf /usr/bin/go-task /usr/bin/task
 
