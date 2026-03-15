@@ -1,131 +1,139 @@
 # backup
 
-Detailed backup workflow for this repository.
+Detaillierter Backup-Workflow für dieses Repository.
 
-## Overview
+## Überblick
 
-Backups are managed through `resticprofile` using `restic/profiles.toml`.
-The default profile:
+Backups werden über `resticprofile` mit `restic/profiles.toml` verwaltet.
+Das Standard-Profil:
 
-- backs up the full home directory (`$HOME`)
-- excludes common cache/build paths
-- exports restore state files before backup
-- pauses all running podman containers before backup and unpauses them after
-- applies retention policy (`forget + prune`)
+- sichert das vollständige Home-Verzeichnis (`$HOME`)
+- schließt Cache-, Build- und Container-Storage-Pfade aus
+- exportiert Workstation-Zustandsdateien vor dem Backup
+- pausiert laufende Podman-Container vor dem Backup und setzt sie danach fort
+- wendet eine Aufbewahrungsrichtlinie an (`forget + prune`)
 
-## Prerequisites
+## Voraussetzungen
 
-- `restic` installed and available in `PATH`
-- `resticprofile` installed and available in `PATH`
-- `jq` installed (required by `export-layered-packages.sh`)
-- `podman`, `flatpak` and optionally `code` available for hook/state capture
-- `~/.config/restic/password` present
-- `~/.config/restic/env` present with credentials
+- Das Custom Kinoite-Image ist aktiv (`restic`, `resticprofile` und `task` bereits enthalten)
+- `~/.config/restic/password` vorhanden
+- `~/.config/restic/env` vorhanden mit S3-Zugangsdaten
 
-Example env file:
+Beispiel `~/.config/restic/env`:
 
 ```bash
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
+RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
 ```
 
-## Profile behavior
+Konfiguration automatisch anlegen lassen:
 
-Profile file: `restic/profiles.toml`
+```bash
+RESTIC_REPOSITORY=... AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... RESTIC_PASSWORD=... \
+  task restore:init
+```
 
-- `repository` points to S3-compatible storage
-- `password-file` and `env-file` are resolved from `$HOME/.config/restic/`
+## Profil-Verhalten
+
+Profildatei: `restic/profiles.toml`
+
+- `repository` zeigt auf S3-kompatiblen Speicher
+- `password-file` und `env-file` werden aus `$HOME/.config/restic/` aufgelöst
 - `run-before`:
-  - pauses podman containers
-  - exports layered packages, flatpaks, and VS Code extensions to `~/.local/state/backup/`
-- `run-finally` unpauses podman containers
-- backup includes `$HOME` with exclusions
-- backup uses max compression and one filesystem mode
-- check and forget schedules are defined in profile
+  - pausiert Podman-Container
+  - exportiert layered Pakete, Flatpaks und VS Code Extensions nach `~/.local/state/backup/`
+- `run-finally` setzt Podman-Container fort
+- Backup schließt `$HOME` ein (mit Ausnahmen)
+- Maximale Kompression, Single-Filesystem
 
-## Initialize repository
-
-Run once per new repository:
+## Repository initialisieren (einmalig)
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml init
 ```
 
-## Manual operations
+## Manuelle Operationen
 
-Run backup:
+Backup ausführen:
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml backup
 ```
 
-Run consistency check:
+Konsistenzprüfung:
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml check
 ```
 
-Run retention/cleanup:
+Aufbewahrung anwenden:
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml forget
 ```
 
-List snapshots:
+Snapshots auflisten:
 
 ```bash
-set -a
-source ~/.config/restic/env
-set +a
-restic -r "$(sed -n 's/^repository = "\(.*\)"/\1/p' ~/.local/share/backup/restic/profiles.toml | head -n1)" \
-  --password-file ~/.config/restic/password snapshots
+set -a; source ~/.config/restic/env; set +a
+restic -r "$RESTIC_REPOSITORY" --password-file ~/.config/restic/password snapshots
 ```
 
-## Scheduling with systemd user units
+## Zeitpläne (systemd user units)
 
-`resticprofile` can generate/install systemd user units from schedules in `profiles.toml`:
+Zeitpläne aktivieren (nach Ersteinrichtung oder nach Restore):
+
+```bash
+task restore:schedule
+```
+
+Zeitpläne direkt mit `resticprofile`:
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml schedule --all --start --reload
 systemctl --user list-timers '*resticprofile*'
 ```
 
-Remove generated schedules:
+Logs und Units:
+
+```bash
+journalctl --user -n 200 --no-pager | grep -i resticprofile
+systemctl --user list-unit-files | grep -i resticprofile
+```
+
+Zeitpläne entfernen:
 
 ```bash
 resticprofile -c ~/.local/share/backup/restic/profiles.toml unschedule --all
 ```
 
-If you want timers to run without active login:
+Timer ohne aktive Login-Session:
 
 ```bash
 loginctl enable-linger "$USER"
 ```
 
-## Hook-generated restore state
+## Hook-generierte Zustandsdateien
 
-The following files are generated on backup and included in snapshots:
+Diese Dateien werden vor jedem Backup erzeugt und im Snapshot gespeichert:
 
-- `~/.local/state/backup/layered-packages.txt`
-- `~/.local/state/backup/flatpaks.txt`
-- `~/.local/state/backup/vscode-extensions.txt`
-
-These are consumed by `restore/bootstrap.sh apply-state` during restore.
+| Datei                                         | Inhalt                    |
+| --------------------------------------------- | ------------------------- |
+| `~/.local/state/backup/layered-packages.txt`  | layered rpm-ostree-Pakete |
+| `~/.local/state/backup/flatpaks.txt`          | installierte Flatpak-Apps |
+| `~/.local/state/backup/vscode-extensions.txt` | VS Code Extensions        |
 
 ## Troubleshooting
 
-No repository access / auth errors:
+Kein Repository-Zugang / Auth-Fehler:
+- `~/.config/restic/env` prüfen
+- `~/.config/restic/password` prüfen
+- Test: `restic snapshots` manuell ausführen
 
-- verify `~/.config/restic/env` is present and valid
-- verify `~/.config/restic/password` is correct
-- test with `restic snapshots`
+Backup hängt oder schlägt bei Containern fehl:
+- Podman-Status: `podman ps -a`
+- Verbose-Ausgabe: `resticprofile -v -c ~/.local/share/backup/restic/profiles.toml backup`
 
-Backup hangs or fails around containers:
-
-- check podman health: `podman ps -a`
-- run backup with verbose logs: `resticprofile -v -c ~/.local/share/backup/restic/profiles.toml backup`
-
-Missing state files:
-
-- run hooks manually from `restic/hooks/`
-- confirm `jq` is installed for layered package export
+Fehlende Zustandsdateien:
+- Hooks aus `restic/hooks/` manuell ausführen
