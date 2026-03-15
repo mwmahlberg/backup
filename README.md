@@ -6,14 +6,14 @@ Custom Fedora Kinoite workstation image and reproducible backup/restore workflow
 
 ## What this repository contains
 
-| Path | Purpose |
-| --- | --- |
-| `Containerfile.kinoite` | Custom Kinoite image (packages, repos, tools) |
-| `Taskfile.yml` | Task automation (`task`) for build, push, rebase, and restore |
-| `restic/profiles.toml` | resticprofile configuration (backup, check, forget, restore) |
-| `restic/hooks/` | Hooks that export packages, Flatpaks, and VS Code extensions before backup |
-| `restore/bootstrap.sh` | Re-applies saved workstation state after restore |
-| `docs/` | Detailed guides |
+| Path                    | Purpose                                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| `Containerfile.kinoite` | Custom Kinoite image (packages, repos, tools)                              |
+| `Taskfile.yml`          | Task automation (`task`) for build, push, rebase, and restore              |
+| `restic/profiles.toml`  | resticprofile configuration (backup, check, forget, restore)               |
+| `restic/hooks/`         | Hooks that export packages, Flatpaks, and VS Code extensions before backup |
+| `restore/bootstrap.sh`  | Re-applies saved workstation state after restore                           |
+| `docs/`                 | Detailed guides                                                            |
 
 Generated state files (`~/.local/state/backup/`) are intentionally not stored in git. They are generated during backup and included in snapshots.
 
@@ -24,10 +24,10 @@ Generated state files (`~/.local/state/backup/`) are intentionally not stored in
 These files are **not included in backups** (`~/.config/restic` is explicitly excluded).
 Without them, restore is impossible if the machine is lost.
 
-| File | Purpose |
-| --- | --- |
-| `~/.config/restic/password` | Password for the restic repository |
-| `~/.config/restic/env` | S3 credentials (`RESTIC_REPOSITORY`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) |
+| File                        | Purpose                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------- |
+| `~/.config/restic/password` | Password for the restic repository                                                 |
+| `~/.config/restic/env`      | S3 credentials (`RESTIC_REPOSITORY`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) |
 
 Example `~/.config/restic/env`:
 
@@ -134,20 +134,20 @@ Details: [docs/restore.md](docs/restore.md)
 task --list
 ```
 
-| Task | Description |
-| --- | --- |
-| `image:build` | Build Kinoite image locally |
-| `image:push` | Push image to registry (builds if needed, logs in first) |
-| `image:digest` | Print remote image digest |
-| `system:rebase` | Rebase system to current image digest |
-| `registry:login` | Log in to container registry |
-| `registry:logout` | Log out from container registry |
-| `ostree:login` | Configure ostree auth (`/etc/ostree/auth.json`) |
-| `ostree:logout` | Remove registry from ostree auth |
-| `restore:init` | Create restic config on fresh system |
-| `restore:run` | Restore HOME from latest snapshot |
-| `restore:bootstrap` | Manually re-apply workstation state |
-| `restore:schedule` | Re-enable backup schedules after restore |
+| Task                | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `image:build`       | Build Kinoite image locally                              |
+| `image:push`        | Push image to registry (builds if needed, logs in first) |
+| `image:digest`      | Print remote image digest                                |
+| `system:rebase`     | Rebase system to current image digest                    |
+| `registry:login`    | Log in to container registry                             |
+| `registry:logout`   | Log out from container registry                          |
+| `ostree:login`      | Configure ostree auth (`/etc/ostree/auth.json`)          |
+| `ostree:logout`     | Remove registry from ostree auth                         |
+| `restore:init`      | Create restic config on fresh system                     |
+| `restore:run`       | Restore HOME from latest snapshot                        |
+| `restore:bootstrap` | Manually re-apply workstation state                      |
+| `restore:schedule`  | Re-enable backup schedules after restore                 |
 
 ---
 
