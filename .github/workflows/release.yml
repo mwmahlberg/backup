@@ -82,7 +82,7 @@ jobs:
         uses: requarks/changelog-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fromTag: ${{ steps.release-tag.outputs.release_tag }}
+          fromTag: ${{ github.sha }}
           toTag: ${{ steps.previous-tag.outputs.previous_tag }}
           changelogFilePath: CHANGELOG.md
           includeInvalidCommits: false
