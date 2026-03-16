@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   build-push:
-    name: Build and push Kinoite image
+    name: Build image and push only from main/develop
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     permissions:
@@ -64,23 +64,18 @@ jobs:
       - name: Resolve push policy
         id: push-policy
         run: |
-          branch="${GITHUB_REF_NAME}"
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            branch="${GITHUB_BASE_REF}"
-          fi
-
           fedora_tag="$(grep -E '^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:' Dockerfile | head -n1 | sed -E 's#^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:([^[:space:]]+).*$#\1#')"
           fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
 
           should_push="false"
-          if [ "${GITHUB_EVENT_NAME}" = "push" ] && { [ "${branch}" = "main" ] || [ "${branch}" = "develop" ]; }; then
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && { [ "${GITHUB_REF_NAME}" = "main" ] || [ "${GITHUB_REF_NAME}" = "develop" ]; }; then
             should_push="true"
           fi
 
           echo "fedora_tag=${fedora_tag}" >> "${GITHUB_OUTPUT}"
           echo "fedora_major=${fedora_major}" >> "${GITHUB_OUTPUT}"
           echo "should-push=${should_push}" >> "${GITHUB_OUTPUT}"
-          echo "Push policy: branch=${branch}, fedora_tag=${fedora_tag}, should_push=${should_push}"
+          echo "Push policy: ref=${GITHUB_REF_NAME}, event=${GITHUB_EVENT_NAME}, fedora_tag=${fedora_tag}, should_push=${should_push}"
 
       - name: Log in to Docker Hub
         if: steps.push-policy.outputs.should-push == 'true'
@@ -89,7 +84,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
+      - name: Build and optionally push
         uses: docker/build-push-action@v7
         with:
           context: .
