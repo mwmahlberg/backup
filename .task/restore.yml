@@ -119,6 +119,59 @@ tasks:
     cmds:
       - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore latest
 
+  list-snapshots:
+    desc: List available snapshots for restore
+    summary: |
+      Show the snapshots currently available in the configured restic repository so you can
+      decide whether to restore the latest backup or a specific snapshot ID.
+    deps:
+      - check
+    cmds:
+      - |
+        set -euo pipefail
+        set -a
+        source "$HOME/.config/restic/env"
+        set +a
+
+        echo "Available snapshots in $RESTIC_REPOSITORY:"
+        restic -r "$RESTIC_REPOSITORY" --password-file "$HOME/.config/restic/password" snapshots
+        echo
+        echo "To restore a specific snapshot, run:"
+        echo '  backup-task restore:snapshot SNAPSHOT=<snapshot-id>'
+
+  snapshot:
+    desc: Restore HOME from a specific snapshot ID
+    summary: |
+      Restore from a specific restic snapshot instead of the latest one. Provide the snapshot
+      ID via SNAPSHOT=<id>. This is useful when the newest snapshot is not the one you want.
+    deps:
+      - check
+    requires:
+      vars:
+        - SNAPSHOT
+    prompt: |
+      HOME will be restored from snapshot {{.SNAPSHOT}}.
+      Target: /
+      Delete mode: enabled (files missing from the snapshot will be removed)
+      Local credentials under ~/.config/restic are preserved
+      Run this only from a TTY or before the first graphical login.
+      Continue?
+    cmds:
+      - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore "{{.SNAPSHOT}}"
+      - |
+        cat <<'EOF'
+        Restore completed.
+
+        Next steps:
+        1. Reboot now:
+           sudo systemctl reboot
+        2. After reboot, re-enable backup schedules:
+           backup-task system:schedule
+        3. Optional: keep user timers active without an active session:
+           loginctl enable-linger "$USER"
+        4. Verify your shell config, dotfiles, project directories, and applications.
+        EOF
+
   full:
     desc: Run the full restore workflow
     summary: |
