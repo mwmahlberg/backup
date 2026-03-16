@@ -13,45 +13,44 @@ Hinweise:
 - Das Image ist auf System-Pakete und -Konfiguration beschränkt; User-Daten gehören in Restic.
 - RPM Fusion und der VS Code-Repo werden im Build aktiviert.
 
-## 2) Image bauen und pushen
+## 2) Image bauen, pushen und signieren
 
 ```bash
 task image:push
 ```
 
-`image:push` baut bei Bedarf automatisch neu (Quelldatei-Tracking auf `Dockerfile`) und loggt sich vorher ein.
+`image:push` baut bei Bedarf automatisch neu (Quelldatei-Tracking auf `Dockerfile`), loggt sich vorher ein,
+pusht das Image und signiert danach den gepushten Digest per `cosign` keyless.
+
+Nur lokal bauen, ohne Publish:
+
+```bash
+task image:build
+```
 
 Manuell (ohne Task):
 
 ```bash
 podman build -t docker.io/mwmahlberg/kinoite-workstation:43 -f Dockerfile .
 podman push docker.io/mwmahlberg/kinoite-workstation:43
+cosign sign --yes docker.io/mwmahlberg/kinoite-workstation:43@$(skopeo inspect --format '{{.Digest}}' docker://docker.io/mwmahlberg/kinoite-workstation:43)
 ```
 
-## 3) Image signieren (geplant)
-
-Einmalig ein Schlüsselpaar erzeugen (privaten Schlüssel sicher aufbewahren):
+Signatur manuell prüfen:
 
 ```bash
-cosign generate-key-pair
+task image:verify
 ```
 
-Gepushtes Image signieren:
-
-```bash
-cosign sign --key cosign.key docker.io/mwmahlberg/kinoite-workstation:43
-```
-
-Signatur prüfen:
-
-```bash
-cosign verify --key cosign.pub docker.io/mwmahlberg/kinoite-workstation:43
-```
+Standardmaessig vertraut `image:verify` keyless Signaturen, deren Zertifikats-Identity auf
+`.*mwmahlberg.*` passt und deren Issuer entweder GitHub OAuth (lokales Signing) oder GitHub
+Actions OIDC (CI-Signing) ist. Mit `COSIGN_CERTIFICATE_IDENTITY_REGEXP` oder
+`COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` kannst du das bei Bedarf enger ziehen.
 
 > **Hinweis:** Sobald Signing aktiv ist, sollte der `system:rebase`-Task das TARGET-Präfix
 > von `ostree-unverified-registry:` auf `ostree-image-signed:docker://` umstellen.
 
-## 4) Erster Rebase (manuell)
+## 3) Erster Rebase (manuell)
 
 Beim allerersten Rebase kann die Ausgangsbasis Fedora Kinoite oder Silverblue sein.
 `task` ist noch nicht verfügbar; daher direkt mit `rpm-ostree`:
@@ -69,7 +68,7 @@ Status prüfen:
 rpm-ostree status
 ```
 
-## 5) Folge-Rebases
+## 4) Folge-Rebases
 
 Nach jedem Push auf eine neue Version:
 
@@ -79,7 +78,7 @@ task system:rebase
 
 `system:rebase` ermittelt den aktuellen Remote-Digest via `skopeo` und fragt vor dem Rebase nach Bestätigung.
 
-## 6) Rollback
+## 5) Rollback
 
 ```bash
 sudo rpm-ostree rollback
@@ -108,5 +107,4 @@ sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release
 sudo systemctl reboot
 ```
 
-**Sicherheitshinweis:** `cosign.key` nicht in dieses Repository einchecken. Schlüssel bei Kompromittierung sofort rotieren.
-
+**Sicherheitshinweis:** Keyless-Signing vermeidet einen langlebigen `cosign.key` im Repository oder in CI-Secrets.

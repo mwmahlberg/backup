@@ -6,6 +6,10 @@ vars:
     sh: printf '%s' "${DOCKER_REGISTRY:-docker.io}"
   IMAGE:
     sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
+  COSIGN_CERTIFICATE_IDENTITY_REGEXP:
+    sh: printf '%s' "${COSIGN_CERTIFICATE_IDENTITY_REGEXP:-.*mwmahlberg.*}"
+  COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:
+    sh: printf '%s' "${COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:-https://(github\\.com/login/oauth|token\\.actions\\.githubusercontent\\.com)}"
 
 tasks:
   logout:
@@ -30,13 +34,20 @@ tasks:
       vars:
         - DOCKER_PASSWORD
     cmds:
-      - printf '%s' "${DOCKER_PASSWORD}" | podman login "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin
+      - |
+        set -euo pipefail
+        XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        REGISTRY_AUTH_FILE="${REGISTRY_AUTH_FILE:-${XDG_RUNTIME_DIR}/containers/auth.json}"
+        export XDG_RUNTIME_DIR REGISTRY_AUTH_FILE
+        mkdir -p "$(dirname "$REGISTRY_AUTH_FILE")"
+        printf '%s' "${DOCKER_PASSWORD}" | podman login "{{.REGISTRY}}" -u "${DOCKER_USERNAME:-mwmahlberg}" --password-stdin --authfile "$REGISTRY_AUTH_FILE"
 
-  build:
+  create:
     desc: Build the Kinoite image locally
+    internal: true
     summary: |
-      Build the custom Kinoite image from Dockerfile using podman. The task tracks
-      the Dockerfile as a source so task can skip the build when nothing relevant changed.
+      Build the custom Kinoite image from Dockerfile using podman. This is the local build
+      primitive used by the public image tasks.
     sources:
       - "{{.CONTAINERFILE}}"
       - Taskfile.yml
@@ -50,23 +61,64 @@ tasks:
     cmds:
       - podman build -t "{{.IMAGE}}" -f "{{.CONTAINERFILE}}" .
 
-  push:
-    desc: Push the Kinoite image to the registry
+  sign:
+    desc: Sign the pushed Kinoite image with cosign keyless
+    internal: true
     summary: |
-      Log in to the container registry if necessary, build the image when sources changed,
-      and push the resulting image tag to the configured registry.
+      Resolve the remote digest for the configured image tag and sign that digest with cosign
+      using the keyless flow. This expects the image to be available in the registry already.
     deps:
       - login
+    cmds:
+      - |
+        set -euo pipefail
+        XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+        REGISTRY_AUTH_FILE="${REGISTRY_AUTH_FILE:-${XDG_RUNTIME_DIR}/containers/auth.json}"
+        export XDG_RUNTIME_DIR REGISTRY_AUTH_FILE
+        DIGEST="$(skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}")"
+        cosign sign --yes "{{.IMAGE}}@${DIGEST}"
+
+  verify:
+    desc: Verify the pushed Kinoite image signature
+    summary: |
+      Resolve the remote digest for the configured image tag and verify that at least one
+      cosign keyless signature matches the expected identity and OIDC issuer regexes.
+      Override COSIGN_CERTIFICATE_IDENTITY_REGEXP or COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP
+      when you want stricter or different trust settings.
+    cmds:
+      - |
+        set -euo pipefail
+        DIGEST="$(skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}")"
+        cosign verify \
+          --certificate-identity-regexp '{{.COSIGN_CERTIFICATE_IDENTITY_REGEXP}}' \
+          --certificate-oidc-issuer-regexp '{{.COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP}}' \
+          "{{.IMAGE}}@${DIGEST}"
+
+  build:
+    desc: Build the Kinoite image locally
+    summary: |
+      Build the custom Kinoite image from Dockerfile using podman without pushing or signing it.
+      Use image:push for the default publish-and-sign workflow.
+    deps:
+      - create
+
+  push:
+    desc: Push and sign the Kinoite image
+    summary: |
+      Log in to the container registry if necessary, build the image when sources changed,
+      push the resulting image tag to the configured registry, and sign the pushed digest
+      with cosign keyless.
+    deps:
       - build
+      - login
     cmds:
       - podman push "{{.IMAGE}}"
+      - task: sign
 
   digest:
     desc: Print the remote image digest
     summary: |
       Query the registry for the currently published digest of the configured image tag.
       This is primarily used by the rebase workflow to pin target deployments to a digest.
-    deps:
-      - build
     cmds:
       - skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"

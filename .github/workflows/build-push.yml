@@ -27,6 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
       packages: write
 
     steps:
@@ -85,6 +86,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and optionally push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -93,6 +95,18 @@ jobs:
           tags: ${{ steps.image-tag.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        if: steps.push-policy.outputs.should-push == 'true'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign pushed image
+        if: steps.push-policy.outputs.should-push == 'true'
+        env:
+          PRIMARY_TAG: ${{ steps.image-tag.outputs.primary-tag }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "${PRIMARY_TAG}@${IMAGE_DIGEST}"
 
   scheduled-rebuild-43:
     name: Daily rebuild Fedora 43 (${{ matrix.branch }})
@@ -106,6 +120,7 @@ jobs:
           - develop
     permissions:
       contents: read
+      id-token: write
       packages: write
 
     steps:
@@ -157,6 +172,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -165,3 +181,16 @@ jobs:
           tags: ${{ steps.image-tag.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Install cosign
+        if: steps.push-policy.outputs.should-push == 'true'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign pushed image
+        if: steps.push-policy.outputs.should-push == 'true'
+        env:
+          PRIMARY_TAG: ${{ steps.image-tag.outputs.tags }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          primary_tag="$(printf '%s\n' "${PRIMARY_TAG}" | head -n1)"
+          cosign sign --yes "${primary_tag}@${IMAGE_DIGEST}"

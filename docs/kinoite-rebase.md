@@ -13,45 +13,44 @@ Notes:
 - keep the image focused on system packages and system config; user data belongs in restic
 - RPM Fusion and the VS Code repo are enabled during build
 
-## 2) Build and push image
+## 2) Build, push, and sign image
 
 ```bash
 task image:push
 ```
 
-`image:push` rebuilds automatically when needed (source tracking on `Dockerfile`) and logs in first.
+`image:push` rebuilds automatically when needed (source tracking on `Dockerfile`), logs in first,
+pushes the image, and then signs the pushed digest with `cosign` keyless.
+
+Build only, without publishing:
+
+```bash
+task image:build
+```
 
 Manual equivalent (without task):
 
 ```bash
 podman build -t docker.io/mwmahlberg/kinoite-workstation:43 -f Dockerfile .
 podman push docker.io/mwmahlberg/kinoite-workstation:43
+cosign sign --yes docker.io/mwmahlberg/kinoite-workstation:43@$(skopeo inspect --format '{{.Digest}}' docker://docker.io/mwmahlberg/kinoite-workstation:43)
 ```
 
-## 3) Sign image (planned)
-
-Generate a key pair once (store private key securely):
+Verify signature manually:
 
 ```bash
-cosign generate-key-pair
+task image:verify
 ```
 
-Sign pushed image:
-
-```bash
-cosign sign --key cosign.key docker.io/mwmahlberg/kinoite-workstation:43
-```
-
-Verify signature:
-
-```bash
-cosign verify --key cosign.pub docker.io/mwmahlberg/kinoite-workstation:43
-```
+By default, `image:verify` trusts keyless signatures whose certificate identity matches
+`.*mwmahlberg.*` and whose issuer matches either GitHub OAuth (local signing) or GitHub
+Actions OIDC (CI signing). Override `COSIGN_CERTIFICATE_IDENTITY_REGEXP` or
+`COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` when you want stricter matching.
 
 > **Note:** Once signing is enabled, the `system:rebase` task should switch TARGET prefix
 > from `ostree-unverified-registry:` to `ostree-image-signed:docker://`.
 
-## 4) First rebase (manual)
+## 3) First rebase (manual)
 
 On the first rebase, the starting base can be Fedora Kinoite or Silverblue.
 `task` may not be available yet, so use `rpm-ostree` directly:
@@ -69,7 +68,7 @@ Check status:
 rpm-ostree status
 ```
 
-## 5) Follow-up rebases
+## 4) Follow-up rebases
 
 After every new image push:
 
@@ -101,7 +100,7 @@ The status can be checked with:
 task system:auto-update:status
 ```
 
-## 6) Rollback
+## 5) Rollback
 
 ```bash
 sudo rpm-ostree rollback
@@ -130,5 +129,4 @@ sudo rpm-ostree uninstall rpmfusion-free-release rpmfusion-nonfree-release
 sudo systemctl reboot
 ```
 
-**Security note:** Never commit `cosign.key` into this repository. Rotate keys immediately on compromise.
-
+**Security note:** Keyless signing avoids storing a long-lived `cosign.key` in the repository or CI secrets.
