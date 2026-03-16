@@ -39,6 +39,9 @@ Generated state files (`~/.local/state/backup/`) are intentionally not stored in
 
 These files are **not included in backups** (`~/.config/restic` is explicitly excluded).
 Without them, restore is impossible if the machine is lost.
+Storing them on a dedicated USB device is optional, but strongly recommended.
+Best practice: use an encrypted USB device or encrypted partition and keep `backup-config/`
+there via `backup-task backup:save-settings`.
 
 | File                        | Purpose                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------- |
@@ -66,7 +69,7 @@ Install Fedora Kinoite or Silverblue as usual. After first boot, continue with s
 On the **very first** rebase, `task` may not be available yet, so run it manually:
 
 ```bash
-sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:43
+sudo rpm-ostree rebase ostree-unverified-registry:docker://docker.io/mwmahlberg/kinoite-workstation:43
 sudo systemctl reboot
 ```
 
@@ -82,6 +85,12 @@ Details: [docs/kinoite-rebase.md](docs/kinoite-rebase.md)
 ### 3) Configure backups
 
 Prerequisite: credentials are available (USB drive, password manager, etc.).
+
+Recommended after setup:
+
+```bash
+backup-task backup:save-settings
+```
 
 No repository checkout is required. The image ships backup code under `/usr/share/backup`,
 and `backup-task` uses the Taskfile from there.
@@ -159,6 +168,7 @@ Details: [docs/restore.md](docs/restore.md)
 
 - [docs/backup.md](docs/backup.md) - Backup workflow in detail
 - [docs/restore.md](docs/restore.md) - Restore workflow in detail
+- [docs/Recovery.md](docs/Recovery.md) - Full recovery from fresh Silverblue to restored system
 - [docs/kinoite-rebase.md](docs/kinoite-rebase.md) - Build, push, and rebase workflow
 
 ## Automatic System Updates (in-system)

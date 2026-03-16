@@ -34,6 +34,9 @@ Generierte Zustandsdateien (`~/.local/state/backup/`) sind bewusst nicht in Git 
 
 Diese Dateien sind **nicht im Backup enthalten** (`~/.config/restic` ist explizit ausgeschlossen).
 Ohne sie ist kein Restore möglich, falls das Gerät verloren geht.
+Die Ablage auf einem dedizierten USB-Gerät ist optional, aber dringend empfohlen.
+Best Practice: ein verschlüsseltes USB-Gerät oder eine verschlüsselte Partition verwenden
+und die Daten dort per `backup-task backup:save-settings` unter `backup-config/` ablegen.
 
 | Datei                       | Inhalt                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------- |
@@ -61,7 +64,7 @@ Fedora Kinoite oder Silverblue normal installieren. Nach dem ersten Boot weiter 
 Beim **allerersten** Rebase ist `task` noch nicht verfügbar; daher manuell:
 
 ```bash
-sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:43
+sudo rpm-ostree rebase ostree-unverified-registry:docker://docker.io/mwmahlberg/kinoite-workstation:43
 sudo systemctl reboot
 ```
 
@@ -77,6 +80,12 @@ Details: [docs/kinoite-rebase.de.md](docs/kinoite-rebase.de.md)
 ### 3) Backup einrichten
 
 Voraussetzung: Zugangsdaten liegen bereit (USB-Stick, Passwort-Manager o. ä.).
+
+Empfohlen nach der Einrichtung:
+
+```bash
+backup-task backup:save-settings
+```
 
 Kein Repository-Checkout nötig. Das Image liefert den Backup-Code unter `/usr/share/backup` mit,
 und `backup-task` verwendet automatisch `Taskfile.yml` von dort.
@@ -154,6 +163,7 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 
 - [docs/backup.de.md](docs/backup.de.md) — Backup-Workflow im Detail
 - [docs/restore.de.md](docs/restore.de.md) — Restore-Workflow im Detail
+- [docs/Recovery.de.md](docs/Recovery.de.md) — Vollständiger Recovery-Pfad von frischem Silverblue bis zum wiederhergestellten System
 - [docs/kinoite-rebase.de.md](docs/kinoite-rebase.de.md) — Image bauen, pushen und rebasen
 
 ## Git-Flow Release-Workflow
