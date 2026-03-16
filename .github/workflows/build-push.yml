@@ -26,9 +26,12 @@ jobs:
     name: Build image and push only from main/develop
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    outputs:
+      should-push: ${{ steps.push-policy.outputs.should-push }}
+      primary-tag: ${{ steps.image-tag.outputs.primary-tag }}
+      image-digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
-      id-token: write
       packages: write
 
     steps:
@@ -41,6 +44,7 @@ jobs:
       - name: Resolve image tags
         id: image-tag
         run: |
+          image_repo="docker.io/mwmahlberg/kinoite-workstation"
           branch="${GITHUB_REF_NAME}"
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             branch="${GITHUB_BASE_REF}"
@@ -48,19 +52,24 @@ jobs:
 
           fedora_tag="$(grep -E '^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:' Dockerfile | head -n1 | sed -E 's#^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:([^[:space:]]+).*$#\1#')"
           fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
+          short_sha="$(printf '%s' "${GITHUB_SHA}" | cut -c1-12)"
 
           if [ "${branch}" = "main" ]; then
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}"
-            channel_tag="docker.io/mwmahlberg/kinoite-workstation:stable"
+            primary_tag="${image_repo}:${fedora_major}"
+            channel_tag="${image_repo}:stable"
+            sha_tag="${image_repo}:sha-${short_sha}"
           else
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}-dev"
-            channel_tag="docker.io/mwmahlberg/kinoite-workstation:dev"
+            primary_tag="${image_repo}:${fedora_major}-dev"
+            channel_tag="${image_repo}:dev"
+            sha_tag="${image_repo}:sha-${short_sha}-dev"
           fi
 
           echo "primary-tag=${primary_tag}" >> "${GITHUB_OUTPUT}"
+          echo "sha-tag=${sha_tag}" >> "${GITHUB_OUTPUT}"
           echo "tags<<EOF" >> "${GITHUB_OUTPUT}"
           echo "${primary_tag}" >> "${GITHUB_OUTPUT}"
           echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          echo "${sha_tag}" >> "${GITHUB_OUTPUT}"
           echo "EOF" >> "${GITHUB_OUTPUT}"
 
       - name: Resolve push policy
@@ -97,15 +106,30 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  sign:
+    name: Sign pushed image
+    if: github.event_name != 'schedule' && needs.build-push.outputs.should-push == 'true'
+    runs-on: ubuntu-latest
+    needs:
+      - build-push
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Install cosign
-        if: steps.push-policy.outputs.should-push == 'true'
         uses: sigstore/cosign-installer@v3
 
       - name: Sign pushed image
-        if: steps.push-policy.outputs.should-push == 'true'
         env:
-          PRIMARY_TAG: ${{ steps.image-tag.outputs.primary-tag }}
-          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          PRIMARY_TAG: ${{ needs.build-push.outputs.primary-tag }}
+          IMAGE_DIGEST: ${{ needs.build-push.outputs.image-digest }}
         run: |
           cosign sign --yes "${PRIMARY_TAG}@${IMAGE_DIGEST}"
 
@@ -121,7 +145,6 @@ jobs:
           - develop
     permissions:
       contents: read
-      id-token: write
       packages: write
 
     steps:
@@ -136,22 +159,28 @@ jobs:
       - name: Resolve image tags
         id: image-tag
         run: |
+          image_repo="docker.io/mwmahlberg/kinoite-workstation"
           branch="${{ matrix.branch }}"
           fedora_tag="$(grep -E '^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:' Dockerfile | head -n1 | sed -E 's#^FROM[[:space:]]+quay\.io/fedora-ostree-desktops/kinoite:([^[:space:]]+).*$#\1#')"
           fedora_major="$(printf '%s' "${fedora_tag}" | sed -E 's/^([0-9]+).*/\1/')"
+          short_sha="$(git rev-parse --short=12 HEAD)"
 
           if [ "${branch}" = "main" ]; then
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}"
-            channel_tag="docker.io/mwmahlberg/kinoite-workstation:stable"
+            primary_tag="${image_repo}:${fedora_major}"
+            channel_tag="${image_repo}:stable"
+            sha_tag="${image_repo}:sha-${short_sha}"
           else
-            primary_tag="docker.io/mwmahlberg/kinoite-workstation:${fedora_major}-dev"
-            channel_tag="docker.io/mwmahlberg/kinoite-workstation:dev"
+            primary_tag="${image_repo}:${fedora_major}-dev"
+            channel_tag="${image_repo}:dev"
+            sha_tag="${image_repo}:sha-${short_sha}-dev"
           fi
 
+          echo "primary-tag=${primary_tag}" >> "${GITHUB_OUTPUT}"
           echo "fedora_major=${fedora_major}" >> "${GITHUB_OUTPUT}"
           echo "tags<<EOF" >> "${GITHUB_OUTPUT}"
           echo "${primary_tag}" >> "${GITHUB_OUTPUT}"
           echo "${channel_tag}" >> "${GITHUB_OUTPUT}"
+          echo "${sha_tag}" >> "${GITHUB_OUTPUT}"
           echo "EOF" >> "${GITHUB_OUTPUT}"
 
       - name: Resolve push policy
@@ -183,15 +212,69 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Store signing metadata
+        env:
+          SHOULD_SIGN: ${{ steps.push-policy.outputs.should-push }}
+          PRIMARY_TAG: ${{ steps.image-tag.outputs.primary-tag }}
+          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p /tmp/sign-input
+          printf 'SHOULD_SIGN=%s\nPRIMARY_TAG=%s\nIMAGE_DIGEST=%s\n' "${SHOULD_SIGN}" "${PRIMARY_TAG}" "${IMAGE_DIGEST}" > "/tmp/sign-input/${{ matrix.branch }}.env"
+
+      - name: Upload signing metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: sign-input-${{ matrix.branch }}
+          path: /tmp/sign-input/${{ matrix.branch }}.env
+          if-no-files-found: error
+
+  scheduled-sign:
+    name: Sign scheduled image (${{ matrix.branch }})
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    needs:
+      - scheduled-rebuild-43
+    strategy:
+      fail-fast: false
+      matrix:
+        branch:
+          - main
+          - develop
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download signing metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: sign-input-${{ matrix.branch }}
+          path: /tmp/sign-input
+
+      - name: Load signing metadata
+        id: sign-input
+        run: |
+          set -euo pipefail
+          source "/tmp/sign-input/${{ matrix.branch }}.env"
+          echo "should-sign=${SHOULD_SIGN}" >> "${GITHUB_OUTPUT}"
+          echo "primary-tag=${PRIMARY_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "image-digest=${IMAGE_DIGEST}" >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to Docker Hub
+        if: steps.sign-input.outputs.should-sign == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Install cosign
-        if: steps.push-policy.outputs.should-push == 'true'
+        if: steps.sign-input.outputs.should-sign == 'true'
         uses: sigstore/cosign-installer@v3
 
       - name: Sign pushed image
-        if: steps.push-policy.outputs.should-push == 'true'
+        if: steps.sign-input.outputs.should-sign == 'true'
         env:
-          PRIMARY_TAG: ${{ steps.image-tag.outputs.tags }}
-          IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
+          PRIMARY_TAG: ${{ steps.sign-input.outputs.primary-tag }}
+          IMAGE_DIGEST: ${{ steps.sign-input.outputs.image-digest }}
         run: |
-          primary_tag="$(printf '%s\n' "${PRIMARY_TAG}" | head -n1)"
-          cosign sign --yes "${primary_tag}@${IMAGE_DIGEST}"
+          cosign sign --yes "${PRIMARY_TAG}@${IMAGE_DIGEST}"
