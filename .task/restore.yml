@@ -1,6 +1,79 @@
 version: '3'
 
 tasks:
+  check:
+    desc: Validate restore prerequisites and repository state
+    summary: |
+      Verify that restore-specific prerequisites are in place: required binaries, bundled profile,
+      local restic secret files, repository connectivity, and at least one available snapshot.
+      Use this before any destructive restore run.
+    cmds:
+      - |
+        set -euo pipefail
+
+        PROFILE="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml"
+        RESTIC_PASSWORD_FILE="$HOME/.config/restic/password"
+        RESTIC_ENV_FILE="$HOME/.config/restic/env"
+        SNAPSHOTS_OUT="$(mktemp)"
+        SNAPSHOTS_ERR="$(mktemp)"
+        trap 'rm -f "$SNAPSHOTS_OUT" "$SNAPSHOTS_ERR"' EXIT
+
+        for bin in restic resticprofile task; do
+          command -v "$bin" >/dev/null 2>&1 || {
+            echo "Missing required binary: $bin" >&2
+            echo "Next step: rebase to the custom image or install the missing tool before restore." >&2
+            exit 1
+          }
+        done
+
+        [[ -f "$PROFILE" ]] || {
+          echo "Missing restore profile: $PROFILE" >&2
+          echo "Next step: run 'backup-task restore:init' first." >&2
+          exit 1
+        }
+
+        [[ -f "$RESTIC_PASSWORD_FILE" ]] || {
+          echo "Missing restic password file: $RESTIC_PASSWORD_FILE" >&2
+          echo "Next step: provide your credentials and run 'backup-task restore:init'." >&2
+          exit 1
+        }
+
+        [[ -f "$RESTIC_ENV_FILE" ]] || {
+          echo "Missing restic environment file: $RESTIC_ENV_FILE" >&2
+          echo "Next step: provide your credentials and run 'backup-task restore:init'." >&2
+          exit 1
+        }
+
+        set -a
+        source "$RESTIC_ENV_FILE"
+        set +a
+
+        [[ -n "${RESTIC_REPOSITORY:-}" ]] || {
+          echo "RESTIC_REPOSITORY is missing in $RESTIC_ENV_FILE" >&2
+          echo "Next step: recreate the file with 'backup-task restore:init'." >&2
+          exit 1
+        }
+
+        restic -r "$RESTIC_REPOSITORY" --password-file "$RESTIC_PASSWORD_FILE" snapshots >"$SNAPSHOTS_OUT" 2>"$SNAPSHOTS_ERR" || {
+          echo "Unable to reach the restic repository or unlock it." >&2
+          cat "$SNAPSHOTS_ERR" >&2 || true
+          echo "Next step: verify network access and credentials in ~/.config/restic/{env,password}." >&2
+          exit 1
+        }
+
+        snapshot_count="$(awk 'BEGIN{count=0} $1 ~ /^[0-9a-f]+$/ && $2 ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/ {count++} END{print count}' "$SNAPSHOTS_OUT")"
+        if [[ "${snapshot_count}" -eq 0 ]]; then
+          echo "Repository is reachable, but no snapshots are available for restore." >&2
+          echo "Next step: create a backup first or point RESTIC_REPOSITORY to the correct location." >&2
+          exit 1
+        fi
+
+        echo "restore:check passed"
+        echo "Profile: $PROFILE"
+        echo "Repository: $RESTIC_REPOSITORY"
+        echo "Snapshots available: $snapshot_count"
+        echo "Next step: run 'backup-task restore:full' from a TTY or before the first graphical login."
+
   init:
     desc: Create restic configuration for a fresh system
     summary: |
@@ -15,14 +88,32 @@ tasks:
     cmds:
       - mkdir -p ~/.config/resticprofile
       - ln -sf "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" ~/.config/resticprofile/profiles.toml
+      - |
+        set -euo pipefail
+        PROFILE_LINK="$HOME/.config/resticprofile/profiles.toml"
+        PROFILE_TARGET="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml"
+
+        echo "Restore configuration created."
+        echo "  - ~/.config/restic/password"
+        echo "  - ~/.config/restic/env"
+        echo "  - ${PROFILE_LINK} -> ${PROFILE_TARGET}"
+        echo
+        echo "Recommended next steps:"
+        echo "  1. backup-task restore:check"
+        echo "  2. backup-task restore:full"
 
   run:
     desc: Restore HOME from the latest snapshot
     summary: |
       Run resticprofile restore against the latest snapshot using the bundled profile in the
       user's backup directory. This task is intended for controlled restore execution from a TTY.
+    deps:
+      - check
     prompt: |
-      HOME will be restored from the latest snapshot with delete semantics enabled.
+      HOME will be restored from the latest snapshot.
+      Target: /
+      Delete mode: enabled (files missing from the snapshot will be removed)
+      Local credentials under ~/.config/restic are preserved
       Run this only from a TTY or before the first graphical login.
       Continue?
     cmds:
@@ -34,15 +125,29 @@ tasks:
       Validate prerequisites, run a full restore from the latest snapshot, and print the next
       manual steps for rebooting and re-enabling systemd user timers afterwards.
     deps:
-      - doctor
+      - check
     prompt: |
-      A full restore will now start using delete semantics from profiles.toml.
+      A full restore from the latest snapshot is about to start.
+      Target: /
+      Delete mode: enabled (files missing from the snapshot will be removed)
+      Local credentials under ~/.config/restic are preserved
       Run this only from a TTY or before the first graphical login.
       Continue?
     cmds:
       - resticprofile -c "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml" restore latest
-      - 'echo "Restore completed. Reboot now: sudo systemctl reboot"'
-      - 'echo "After reboot run: backup-task system:schedule (or task system:schedule in the repository)"'
+      - |
+        cat <<'EOF'
+        Restore completed.
+
+        Next steps:
+        1. Reboot now:
+           sudo systemctl reboot
+        2. After reboot, re-enable backup schedules:
+           backup-task system:schedule
+        3. Optional: keep user timers active without an active session:
+           loginctl enable-linger "$USER"
+        4. Verify your shell config, dotfiles, project directories, and applications.
+        EOF
 
   bootstrap:
     desc: Re-apply saved workstation state manually
@@ -51,4 +156,3 @@ tasks:
       and VS Code extensions from the exported state files in ~/.local/state/backup.
     cmds:
       - bash "${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restore/bootstrap.sh"
-
