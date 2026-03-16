@@ -188,6 +188,11 @@ tasks:
         RESTIC_ENV_FILE="$HOME/.config/restic/env"
         MOUNT_POINT="{{.MOUNT_POINT}}"
         TARGET_DIR="${MOUNT_POINT}/backup-config"
+        DOCS_SRC="${BACKUP_SOURCE_DIR:-/usr/share/backup}/docs"
+
+        if [[ -d "./docs" ]] && [[ -f "./docs/Recovery.md" ]] && [[ -f "./docs/Recovery.de.md" ]]; then
+          DOCS_SRC="./docs"
+        fi
 
         if ! findmnt -no OPTIONS "${MOUNT_POINT}" | grep -qw rw; then
           echo "Selected target is mounted read-only: ${MOUNT_POINT}" >&2
@@ -204,23 +209,15 @@ tasks:
         mkdir -p "$TARGET_DIR/restic"
         install -m 600 "$RESTIC_PASSWORD_FILE" "$TARGET_DIR/restic/password"
         install -m 600 "$RESTIC_ENV_FILE" "$TARGET_DIR/restic/env"
-
-        cat > "$TARGET_DIR/README.txt" <<'EOF'
-        backup-config
-
-        This directory contains the local restore-critical restic configuration copied from:
-        - ~/.config/restic/password
-        - ~/.config/restic/env
-
-        Keep this directory offline and secure. Without these files, restoring from backup is not possible.
-        EOF
-        chmod 600 "$TARGET_DIR/README.txt"
+        install -m 644 "$DOCS_SRC/Recovery.md" "$TARGET_DIR/Recovery.md"
+        install -m 644 "$DOCS_SRC/Recovery.de.md" "$TARGET_DIR/Recovery.de.md"
 
         echo "Saved restore-critical settings to: $TARGET_DIR"
         echo "Files:"
         echo "  - $TARGET_DIR/restic/password"
         echo "  - $TARGET_DIR/restic/env"
-        echo "  - $TARGET_DIR/README.txt"
+        echo "  - $TARGET_DIR/Recovery.md"
+        echo "  - $TARGET_DIR/Recovery.de.md"
 
   restore-settings:
     desc: Restore saved settings from a USB device

@@ -141,13 +141,7 @@ RUN chmod 0755 /usr/share/backup/restic/hooks/*.sh /usr/share/backup/restore/*.s
     && ln -sf /usr/share/backup/restore/backup-task.sh /usr/bin/backup-task
 
 # Harden the default container policy while keeping the known bootstrap sources explicit.
-RUN jq '
-  .default = [{"type":"reject"}]
-  | .transports.docker-daemon[""] = [{"type":"insecureAcceptAnything"}]
-  | .transports.docker = {
-      "docker.io/mwmahlberg/kinoite-workstation": [{"type":"insecureAcceptAnything"}]
-    }
-' /etc/containers/policy.json > /tmp/policy.json \
+RUN jq '.default = [{"type":"reject"}] | .transports["docker-daemon"][""] = [{"type":"insecureAcceptAnything"}] | .transports.docker = {"docker.io/mwmahlberg/kinoite-workstation": [{"type":"insecureAcceptAnything"}]}' /etc/containers/policy.json > /tmp/policy.json \
   && install -m 0644 /tmp/policy.json /etc/containers/policy.json \
   && rm -f /tmp/policy.json
 

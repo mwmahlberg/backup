@@ -168,6 +168,7 @@ Details: [docs/restore.md](docs/restore.md)
 
 - [docs/backup.md](docs/backup.md) - Backup workflow in detail
 - [docs/restore.md](docs/restore.md) - Restore workflow in detail
+- [docs/Recovery.md](docs/Recovery.md) - Full recovery from fresh Silverblue to restored system
 - [docs/kinoite-rebase.md](docs/kinoite-rebase.md) - Build, push, and rebase workflow
 
 ## Automatic System Updates (in-system)
