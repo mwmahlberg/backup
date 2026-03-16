@@ -10,6 +10,7 @@ No `git clone` required. The required code is shipped in the image under `/usr/s
 
 ```bash
 backup-task setup:first-boot
+backup-task restore:check
 backup-task restore:full
 sudo systemctl reboot
 backup-task system:schedule
@@ -112,6 +113,9 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   RESTIC_PASSWORD=your-restic-password \
   backup-task restore:init
 
+backup-task restore:check
+# optional: inspect available snapshots first
+backup-task restore:list-snapshots
 backup-task restore:full
 ```
 
@@ -139,6 +143,9 @@ Details: [docs/restore.md](docs/restore.md)
 | `secrets:check`     | Validate presence/permissions of restic secret files |
 | `setup:first-boot`  | One-command first-boot setup                         |
 | `restore:init`      | Create restic config from env vars                   |
+| `restore:check`     | Validate restore prerequisites and snapshot access   |
+| `restore:list-snapshots` | List available snapshots before restore         |
+| `restore:snapshot`  | Restore a specific snapshot ID                       |
 | `restore:full`      | Full restore with next-step hints                    |
 | `restore:bootstrap` | Manually re-apply workstation state                  |
 | `system:schedule`   | Re-enable backup schedules after restore             |

@@ -45,13 +45,19 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   RESTIC_PASSWORD=your-restic-password \
   backup-task restore:init
 
-# 2. Restore ausführen
+# 2. Restore-Voraussetzungen prüfen
+backup-task restore:check
+
+# 3. Optional: verfügbare Snapshots ansehen
+backup-task restore:list-snapshots
+
+# 4. Restore ausführen
 backup-task restore:full
 
-# 3. Neu starten
+# 5. Neu starten
 sudo systemctl reboot
 
-# 4. Nach Reboot: Backup-Zeitpläne aktivieren
+# 6. Nach Reboot: Backup-Zeitpläne aktivieren
 backup-task system:schedule
 ```
 
@@ -72,17 +78,22 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
 - `~/.config/restic/env` (chmod 600)
 - `~/.config/resticprofile/profiles.toml` (Symlink auf `restic/profiles.toml`)
 
-### 2) Snapshots prüfen (optional)
+### 2) Restore-Voraussetzungen prüfen
 
 ```bash
-set -a; source ~/.config/restic/env; set +a
-restic \
-  -r "$RESTIC_REPOSITORY" \
-  --password-file ~/.config/restic/password \
-  snapshots
+backup-task restore:check
 ```
 
-### 3) Restore ausführen
+`restore:check` prüft die lokale Restore-Konfiguration, die Erreichbarkeit des Repositories
+und ob mindestens ein Snapshot verfügbar ist, bevor ein destruktiver Restore startet.
+
+### 3) Snapshots anzeigen (optional)
+
+```bash
+backup-task restore:list-snapshots
+```
+
+### 4) Restore ausführen
 
 Neuesten Snapshot:
 
@@ -90,15 +101,15 @@ Neuesten Snapshot:
 backup-task restore:run
 ```
 
-Bestimmte Snapshot-ID (manuell via `resticprofile`):
+Bestimmte Snapshot-ID:
 
 ```bash
-resticprofile -c ~/.local/share/backup/restic/profiles.toml restore 70e69674
+backup-task restore:snapshot SNAPSHOT=70e69674
 ```
 
 `restore/bootstrap.sh` wird automatisch nach erfolgreichem Restore ausgeführt und stellt layered Pakete, Flatpaks und VS Code Extensions wieder her.
 
-### 4) Neu starten und prüfen
+### 5) Neu starten und prüfen
 
 ```bash
 sudo systemctl reboot
@@ -106,7 +117,7 @@ sudo systemctl reboot
 
 Nach Reboot: Shell-Konfiguration, Dotfiles, Projektverzeichnisse und Anwendungen prüfen.
 
-### 5) Backup-Zeitpläne reaktivieren
+### 6) Backup-Zeitpläne reaktivieren
 
 ```bash
 backup-task system:schedule
@@ -135,4 +146,3 @@ Diese Dateien werden beim Backup durch die Hooks in `restic/hooks/` erzeugt und 
 | `~/.local/state/backup/layered-packages.txt`  | layered rpm-ostree-Pakete |
 | `~/.local/state/backup/flatpaks.txt`          | installierte Flatpak-Apps |
 | `~/.local/state/backup/vscode-extensions.txt` | VS Code Extensions        |
-

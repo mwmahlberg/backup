@@ -8,6 +8,7 @@ Kein `git clone` nötig, da der notwendige Code im Image unter `/usr/share/backu
 
 ```bash
 backup-task setup:first-boot
+backup-task restore:check
 backup-task restore:full
 sudo systemctl reboot
 backup-task system:schedule
@@ -110,6 +111,9 @@ RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
   RESTIC_PASSWORD=your-restic-password \
   backup-task restore:init
 
+backup-task restore:check
+# optional: verfügbare Snapshots zuerst ansehen
+backup-task restore:list-snapshots
 backup-task restore:full
 ```
 
@@ -137,6 +141,9 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 | `secrets:check`     | Vorhandensein/Rechte von Restic-Secrets prüfen  |
 | `setup:first-boot`  | One-command Ersteinrichtung                     |
 | `restore:init`      | Restic-Konfiguration über Env-Variablen anlegen |
+| `restore:check`     | Restore-Voraussetzungen und Snapshot-Zugriff prüfen |
+| `restore:list-snapshots` | Verfügbare Snapshots vor dem Restore anzeigen |
+| `restore:snapshot`  | Eine bestimmte Snapshot-ID wiederherstellen     |
 | `restore:full`      | Vollständiger Restore mit Next-Step-Hinweis     |
 | `restore:bootstrap` | Workstation-Zustand manuell erneut anwenden     |
 | `system:schedule`   | Backup-Zeitpläne nach Restore reaktivieren      |
