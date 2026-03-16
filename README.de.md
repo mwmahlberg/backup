@@ -2,7 +2,7 @@
 
 Custom Fedora Kinoite Workstation-Image und reproduzierbares Backup/Restore über `restic`/`resticprofile`.
 
-## Schnellstart (5 Befehle)
+## Schnellstart (6 Befehle)
 
 Kein `git clone` nötig, da der notwendige Code im Image unter `/usr/share/backup` liegt.
 

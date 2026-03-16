@@ -7,9 +7,9 @@ vars:
   IMAGE:
     sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
   COSIGN_CERTIFICATE_IDENTITY_REGEXP:
-    sh: printf '%s' "${COSIGN_CERTIFICATE_IDENTITY_REGEXP:-.*mwmahlberg.*}"
+    sh: printf '%s' "${COSIGN_CERTIFICATE_IDENTITY_REGEXP:-https://github\\.com/mwmahlberg/backup/\\.github/workflows/build-push\\.yml@refs/heads/(main|develop)}"
   COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:
-    sh: printf '%s' "${COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:-https://(github\\.com/login/oauth|token\\.actions\\.githubusercontent\\.com)}"
+    sh: printf '%s' "${COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:-https://token\\.actions\\.githubusercontent\\.com}"
 
 tasks:
   logout:
@@ -82,9 +82,9 @@ tasks:
     desc: Verify the pushed Kinoite image signature
     summary: |
       Resolve the remote digest for the configured image tag and verify that at least one
-      cosign keyless signature matches the expected identity and OIDC issuer regexes.
+      cosign keyless signature matches the expected CI identity and OIDC issuer regexes.
       Override COSIGN_CERTIFICATE_IDENTITY_REGEXP or COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP
-      when you want stricter or different trust settings.
+      when you intentionally want to trust a different signer, such as a local manual signature.
     cmds:
       - |
         set -euo pipefail
