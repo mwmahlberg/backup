@@ -51,9 +51,11 @@ Standardmaessig vertraut `image:verify` keyless Signaturen, deren Zertifikats-Id
 passt und deren Issuer GitHub Actions OIDC ist. Mit `COSIGN_CERTIFICATE_IDENTITY_REGEXP` oder
 `COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` kannst du das fuer andere Signierer bewusst anpassen.
 
-> **Hinweis:** Veroeffentlichte Images sind bereits signiert, aber `system:rebase` verwendet
-> aktuell noch `ostree-unverified-registry:`. Die Umstellung auf
-> `ostree-image-signed:docker://` fuer Host-Rebases ist noch ein Folge-Schritt.
+> **Hinweis:** Das Image liefert jetzt eine strengere `/etc/containers/policy.json` mit
+> `default: reject` und expliziten Allowlists für `docker-daemon` sowie
+> `docker.io/mwmahlberg/kinoite-workstation` mit. Host-Rebases bleiben vorerst bei
+> `ostree-unverified-registry:`, weil das aktuelle `containers-policy.json`-Schema die
+> GitHub-Actions-Keyless-Workflow-URI noch nicht sauber ausdrücken kann.
 
 ## 3) Erster Rebase (manuell)
 
@@ -61,7 +63,7 @@ Beim allerersten Rebase kann die Ausgangsbasis Fedora Kinoite oder Silverblue se
 `task` ist noch nicht verfügbar; daher direkt mit `rpm-ostree`:
 
 ```bash
-sudo rpm-ostree rebase ostree-unverified-registry:docker.io/mwmahlberg/kinoite-workstation:43
+sudo rpm-ostree rebase ostree-unverified-registry:docker://docker.io/mwmahlberg/kinoite-workstation:43
 sudo systemctl reboot
 ```
 

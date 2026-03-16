@@ -19,7 +19,7 @@ tasks:
     vars:
       DIGEST:
         sh: skopeo inspect --format '{{"{{.Digest}}"}}' "docker://{{.IMAGE}}"
-      TARGET: ostree-unverified-registry:{{.IMAGE_REPO}}@{{.DIGEST}}
+      TARGET: ostree-unverified-registry:docker://{{.IMAGE_REPO}}@{{.DIGEST}}
     prompt: Rebase system to {{.TARGET}}?
     cmds:
       - sudo rpm-ostree rebase "{{.TARGET}}"
@@ -29,18 +29,18 @@ tasks:
     summary: |
       Rebase the system to the stable channel tag and reboot. Use this to keep the
       host on the stable track while still receiving new image digests automatically.
-    prompt: Rebase system to ostree-unverified-registry:{{.CHANNEL_STABLE}}?
+    prompt: Rebase system to ostree-unverified-registry:docker://{{.CHANNEL_STABLE}}?
     cmds:
-      - sudo rpm-ostree rebase "ostree-unverified-registry:{{.CHANNEL_STABLE}}"
+      - sudo rpm-ostree rebase "ostree-unverified-registry:docker://{{.CHANNEL_STABLE}}"
 
   channel:dev:
     desc: Rebase to the dev floating channel tag
     summary: |
       Rebase the system to the dev channel tag and reboot. Use this to track the
       develop image stream with automatic updates enabled by rpm-ostreed.
-    prompt: Rebase system to ostree-unverified-registry:{{.CHANNEL_DEV}}?
+    prompt: Rebase system to ostree-unverified-registry:docker://{{.CHANNEL_DEV}}?
     cmds:
-      - sudo rpm-ostree rebase "ostree-unverified-registry:{{.CHANNEL_DEV}}"
+      - sudo rpm-ostree rebase "ostree-unverified-registry:docker://{{.CHANNEL_DEV}}"
 
   auto-update:enable:
     desc: Enable staged rpm-ostree automatic updates
