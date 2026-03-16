@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - 'release/**'
+      - 'hotfix/**'
     tags:
       - 'v*'
   workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -29,19 +34,25 @@ jobs:
           case "${GITHUB_REF_NAME}" in
             release/*)
               version="${GITHUB_REF_NAME#release/}"
+              branch_kind="release"
+              ;;
+            hotfix/*)
+              version="${GITHUB_REF_NAME#hotfix/}"
+              branch_kind="hotfix"
               ;;
             *)
-              echo "Branch ${GITHUB_REF_NAME} is not a git-flow release branch" >&2
+              echo "Branch ${GITHUB_REF_NAME} is not a supported git-flow release or hotfix branch" >&2
               exit 1
               ;;
           esac
 
           if ! printf '%s' "$version" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "Release branch name must look like release/vx.y.z" >&2
+            echo "Branch name must look like ${branch_kind}/vx.y.z" >&2
             exit 1
           fi
 
           normalized_version="${version#v}"
+          echo "branch_kind=${branch_kind}" >> "$GITHUB_OUTPUT"
           echo "release_tag=v${normalized_version}" >> "$GITHUB_OUTPUT"
 
       - name: Create temporary local release tag
@@ -89,7 +100,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: ${{ github.ref_name }}
-          commit_message: 'docs(release): update changelogs for ${{ steps.release-tag.outputs.release_tag }} [skip ci]'
+          commit_message: 'docs(${{ steps.release-tag.outputs.branch_kind }}): update changelogs for ${{ steps.release-tag.outputs.release_tag }} [skip ci]'
           file_pattern: CHANGELOG.md releaselog.md
 
   publish-github-release:

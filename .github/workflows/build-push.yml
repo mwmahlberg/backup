@@ -5,12 +5,20 @@ on:
     branches:
       - main
       - develop
+      - 'release/**'
+      - 'hotfix/**'
   pull_request:
     branches:
       - main
       - develop
+      - 'release/**'
+      - 'hotfix/**'
   schedule:
     - cron: '0 10 * * *'
+
+concurrency:
+  group: build-push-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-push:
