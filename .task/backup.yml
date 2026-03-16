@@ -1,5 +1,137 @@
 version: '3'
 
+x-select-device: &select-device |
+  set -euo pipefail
+
+  USB_DEVICES_FILE="$(mktemp)"
+  USB_PARTITIONS_FILE="$(mktemp)"
+  trap 'rm -f "$USB_DEVICES_FILE" "$USB_PARTITIONS_FILE"' EXIT
+
+  lsblk -dnpo NAME,TRAN,TYPE,SIZE,MODEL |
+  awk '$2 == "usb" && $3 == "disk" {
+    model = ""
+    for (i = 5; i <= NF; i++) {
+      model = model (i == 5 ? "" : " ") $i
+    }
+    printf "%s\t%s\t%s\n", $1, $4, model
+  }' >"$USB_DEVICES_FILE"
+
+  DEVICE_COUNT="$(wc -l <"$USB_DEVICES_FILE" | tr -d ' ')"
+  if [[ "$DEVICE_COUNT" -eq 0 ]]; then
+    echo "No USB storage devices found." >&2
+    echo "Next step: connect the USB drive for ${SELECT_PURPOSE} and rerun the task." >&2
+    exit 1
+  fi
+
+  echo "Available USB devices:" >&2
+  i=0
+  while IFS=$'\t' read -r line_device size model; do
+    i=$((i + 1))
+    printf "  %d) %s (%s%s%s)\n" \
+      "$i" \
+      "$line_device" \
+      "${size:-unknown size}" \
+      "${model:+, }" \
+      "${model:-}" >&2
+  done <"$USB_DEVICES_FILE"
+
+  while true; do
+    printf "Select USB device [1-%s]: " "$DEVICE_COUNT" >/dev/tty
+    read -r DEVICE_INDEX </dev/tty
+    if [[ "$DEVICE_INDEX" =~ ^[0-9]+$ ]] && (( DEVICE_INDEX >= 1 && DEVICE_INDEX <= DEVICE_COUNT )); then
+      break
+    fi
+    echo "Invalid selection. Please enter a number from the list." >&2
+  done
+
+  IFS=$'\t' read -r SELECTED_DEVICE _ < <(sed -n "${DEVICE_INDEX}p" "$USB_DEVICES_FILE")
+
+  lsblk -P -p -o NAME,TYPE,SIZE,FSTYPE,LABEL,MOUNTPOINT "$SELECTED_DEVICE" |
+  awk '
+    {
+      name = type = size = fstype = label = mountpoint = ""
+      for (i = 1; i <= NF; i++) {
+        split($i, kv, "=")
+        key = kv[1]
+        value = kv[2]
+        gsub(/^"/, "", value)
+        gsub(/"$/, "", value)
+        if (key == "NAME") name = value
+        else if (key == "TYPE") type = value
+        else if (key == "SIZE") size = value
+        else if (key == "FSTYPE") fstype = value
+        else if (key == "LABEL") label = value
+        else if (key == "MOUNTPOINT") mountpoint = value
+      }
+      if (type == "part") {
+        printf "%s\t%s\t%s\t%s\t%s\n", name, size, fstype, label, mountpoint
+      }
+    }
+  ' >"$USB_PARTITIONS_FILE"
+
+  PARTITION_COUNT="$(wc -l <"$USB_PARTITIONS_FILE" | tr -d ' ')"
+  if [[ "$PARTITION_COUNT" -eq 0 ]]; then
+    echo "No partitions found on $SELECTED_DEVICE." >&2
+    echo "Next step: create and mount a filesystem on the USB device, then retry." >&2
+    exit 1
+  fi
+
+  if [[ "$PARTITION_COUNT" -eq 1 ]]; then
+    PARTITION_INDEX=1
+  else
+    echo "Available partitions on $SELECTED_DEVICE:" >&2
+    i=0
+    while IFS=$'\t' read -r part size fstype label mountpoint; do
+      i=$((i + 1))
+      printf "  %d) %s (%s, fs=%s%s%s%s%s)\n" \
+        "$i" \
+        "$part" \
+        "${size:-unknown size}" \
+        "${fstype:-unknown}" \
+        "${label:+, label=}" \
+        "${label:-}" \
+        "${mountpoint:+, mounted at }" \
+        "${mountpoint:-not mounted}" >&2
+    done <"$USB_PARTITIONS_FILE"
+
+    while true; do
+      printf "Select partition [1-%s]: " "$PARTITION_COUNT" >/dev/tty
+      read -r PARTITION_INDEX </dev/tty
+      if [[ "$PARTITION_INDEX" =~ ^[0-9]+$ ]] && (( PARTITION_INDEX >= 1 && PARTITION_INDEX <= PARTITION_COUNT )); then
+        break
+      fi
+      echo "Invalid selection. Please enter a number from the list." >&2
+    done
+  fi
+
+  IFS=$'\t' read -r SELECTED_PARTITION _ SELECTED_FSTYPE _ MOUNT_POINT < <(sed -n "${PARTITION_INDEX}p" "$USB_PARTITIONS_FILE")
+  MOUNT_POINT="$(lsblk -nrpo MOUNTPOINT "$SELECTED_PARTITION" | awk 'NF {print; exit}')"
+
+  if [[ -n "${MOUNT_POINT:-}" ]]; then
+    echo "Using already mounted partition: $SELECTED_PARTITION -> $MOUNT_POINT" >&2
+  elif [[ "${SELECTED_FSTYPE:-}" == "crypto_LUKS" ]]; then
+    echo "Selected partition is a LUKS container and is not mounted: $SELECTED_PARTITION" >&2
+    echo "Next step: unlock and mount it manually, then rerun the task." >&2
+    exit 1
+  else
+    if ! command -v udisksctl >/dev/null 2>&1; then
+      echo "Selected partition is not mounted and udisksctl is unavailable." >&2
+      echo "Next step: mount $SELECTED_PARTITION manually and rerun the task." >&2
+      exit 1
+    fi
+
+    echo "Mounting $SELECTED_PARTITION via udisksctl..." >&2
+    udisksctl mount -b "$SELECTED_PARTITION" >/dev/null
+    MOUNT_POINT="$(lsblk -nrpo NAME,MOUNTPOINT "$SELECTED_PARTITION" | awk 'NF >= 2 {print $2; exit}')"
+  fi
+
+  if [[ -z "${MOUNT_POINT:-}" || ! -d "$MOUNT_POINT" ]]; then
+    echo "Unable to determine a usable mountpoint for $SELECTED_PARTITION." >&2
+    exit 1
+  fi
+
+  printf '%s\n' "$MOUNT_POINT"
+
 tasks:
   seed:
     desc: Seed bundled backup files into the user directory
@@ -33,3 +165,101 @@ tasks:
         fi
         chmod 0755 "$DST"/restic/hooks/*.sh "$DST"/restore/*.sh 2>/dev/null || true
         echo "Backup files copied: $SRC -> $DST"
+
+  save-settings:
+    desc: Save restore-critical settings to a USB device
+    summary: |
+      Interactively select a USB device and, when needed, one of its partitions. The task copies
+      the local restic secret files that are required for restore into backup-config/ on the
+      selected USB partition. If the partition is not mounted yet, it tries to mount it via
+      udisksctl first.
+    vars:
+      SELECT_PURPOSE: saving restore-critical settings
+      MOUNT_POINT:
+        sh: *select-device
+    deps:
+      - task: :secrets:check
+    interactive: true
+    cmds:
+      - |
+        set -euo pipefail
+
+        RESTIC_PASSWORD_FILE="$HOME/.config/restic/password"
+        RESTIC_ENV_FILE="$HOME/.config/restic/env"
+        MOUNT_POINT="{{.MOUNT_POINT}}"
+        TARGET_DIR="${MOUNT_POINT}/backup-config"
+
+        if ! findmnt -no OPTIONS "${MOUNT_POINT}" | grep -qw rw; then
+          echo "Selected target is mounted read-only: ${MOUNT_POINT}" >&2
+          echo "Next step: remount or repair the filesystem so it is writable, then rerun the task." >&2
+          exit 1
+        fi
+
+        if [[ ! -w "${MOUNT_POINT}" ]]; then
+          echo "Selected target is not writable for user $USER: ${MOUNT_POINT}" >&2
+          echo "Next step: fix ownership or mount permissions, then rerun the task." >&2
+          exit 1
+        fi
+
+        mkdir -p "$TARGET_DIR/restic"
+        install -m 600 "$RESTIC_PASSWORD_FILE" "$TARGET_DIR/restic/password"
+        install -m 600 "$RESTIC_ENV_FILE" "$TARGET_DIR/restic/env"
+
+        cat > "$TARGET_DIR/README.txt" <<'EOF'
+        backup-config
+
+        This directory contains the local restore-critical restic configuration copied from:
+        - ~/.config/restic/password
+        - ~/.config/restic/env
+
+        Keep this directory offline and secure. Without these files, restoring from backup is not possible.
+        EOF
+        chmod 600 "$TARGET_DIR/README.txt"
+
+        echo "Saved restore-critical settings to: $TARGET_DIR"
+        echo "Files:"
+        echo "  - $TARGET_DIR/restic/password"
+        echo "  - $TARGET_DIR/restic/env"
+        echo "  - $TARGET_DIR/README.txt"
+
+  restore-settings:
+    desc: Restore saved settings from a USB device
+    summary: |
+      Interactively select a USB device and, when needed, one of its partitions. The task reads
+      backup-config/restic/{password,env} from the selected USB partition and restores those files
+      into ~/.config/restic with permission mode 0600. LUKS partitions must be unlocked and
+      mounted manually before running this task.
+    vars:
+      SELECT_PURPOSE: restoring saved settings
+      MOUNT_POINT:
+        sh: *select-device
+    interactive: true
+    cmds:
+      - |
+        set -euo pipefail
+
+        MOUNT_POINT="{{.MOUNT_POINT}}"
+        SOURCE_DIR="${MOUNT_POINT}/backup-config/restic"
+        SOURCE_PASSWORD="$SOURCE_DIR/password"
+        SOURCE_ENV="$SOURCE_DIR/env"
+
+        if [[ ! -d "$SOURCE_DIR" ]]; then
+          echo "Missing backup-config/restic on selected partition: $SOURCE_DIR" >&2
+          echo "Next step: select the correct partition or run backup:save-settings first." >&2
+          exit 1
+        fi
+
+        if [[ ! -f "$SOURCE_PASSWORD" || ! -f "$SOURCE_ENV" ]]; then
+          echo "Missing expected files under $SOURCE_DIR" >&2
+          echo "Expected: password and env" >&2
+          exit 1
+        fi
+
+        mkdir -p "$HOME/.config/restic"
+        install -m 600 "$SOURCE_PASSWORD" "$HOME/.config/restic/password"
+        install -m 600 "$SOURCE_ENV" "$HOME/.config/restic/env"
+
+        echo "Restored settings to: $HOME/.config/restic"
+        echo "Files:"
+        echo "  - $HOME/.config/restic/password"
+        echo "  - $HOME/.config/restic/env"

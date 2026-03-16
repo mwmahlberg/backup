@@ -34,6 +34,9 @@ Generierte Zustandsdateien (`~/.local/state/backup/`) sind bewusst nicht in Git 
 
 Diese Dateien sind **nicht im Backup enthalten** (`~/.config/restic` ist explizit ausgeschlossen).
 Ohne sie ist kein Restore möglich, falls das Gerät verloren geht.
+Die Ablage auf einem dedizierten USB-Gerät ist optional, aber dringend empfohlen.
+Best Practice: ein verschlüsseltes USB-Gerät oder eine verschlüsselte Partition verwenden
+und die Daten dort per `backup-task backup:save-settings` unter `backup-config/` ablegen.
 
 | Datei                       | Inhalt                                                                              |
 | --------------------------- | ----------------------------------------------------------------------------------- |
@@ -77,6 +80,12 @@ Details: [docs/kinoite-rebase.de.md](docs/kinoite-rebase.de.md)
 ### 3) Backup einrichten
 
 Voraussetzung: Zugangsdaten liegen bereit (USB-Stick, Passwort-Manager o. ä.).
+
+Empfohlen nach der Einrichtung:
+
+```bash
+backup-task backup:save-settings
+```
 
 Kein Repository-Checkout nötig. Das Image liefert den Backup-Code unter `/usr/share/backup` mit,
 und `backup-task` verwendet automatisch `Taskfile.yml` von dort.

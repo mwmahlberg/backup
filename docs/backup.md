@@ -19,6 +19,8 @@ The default profile:
 - Bundled backup code is available under `/usr/share/backup` (accessible via `backup-task`)
 - `~/.config/restic/password` exists
 - `~/.config/restic/env` exists with S3 credentials
+- Optional but strongly recommended: a dedicated USB device that stores `backup-config/`
+- Best practice: use an encrypted USB device or encrypted partition for that backup config
 
 Example `~/.config/restic/env`:
 
@@ -34,6 +36,16 @@ Create config automatically:
 RESTIC_REPOSITORY=... AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... RESTIC_PASSWORD=... \
   backup-task setup:first-boot
 ```
+
+Recommended right after setup:
+
+```bash
+backup-task backup:save-settings
+```
+
+This copies `~/.config/restic/password` and `~/.config/restic/env` to
+`${USB_MOUNT}/backup-config/restic/`. For encrypted partitions, unlock and mount them manually
+first, then run the task.
 
 ## Profile Behavior
 

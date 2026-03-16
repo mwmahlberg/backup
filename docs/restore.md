@@ -29,6 +29,9 @@ The `resticprofile` restore config (`[default.restore]` in `restic/profiles.toml
 | S3 credentials (repository URL, access key, secret) | Same secure source                                            |
 
 These files are excluded from backup and intentionally not overwritten during restore.
+Using a dedicated USB device for them is optional, but strongly recommended.
+Best practice: use an encrypted USB device or encrypted partition and store the files there via
+`backup-task backup:save-settings` under `backup-config/`.
 
 ## Safety Note
 
@@ -64,6 +67,15 @@ backup-task system:schedule
 ## Step by Step
 
 ### 1) Create configuration
+
+If you previously saved the files via `backup-task backup:save-settings` to a USB device,
+you can restore them directly with:
+
+```bash
+backup-task backup:restore-settings
+```
+
+In that case, `restore:init` is often no longer necessary.
 
 ```bash
 RESTIC_REPOSITORY=s3:fra1.digitaloceanspaces.com/mwmbackups \
