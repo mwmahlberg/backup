@@ -22,6 +22,10 @@ task image:push
 `image:push` baut bei Bedarf automatisch neu (Quelldatei-Tracking auf `Dockerfile`), loggt sich vorher ein,
 pusht das Image und signiert danach den gepushten Digest per `cosign` keyless.
 
+Lokales keyless Signing kann die vom IdP gelieferte Identitaet in oeffentliche Transparenz-Logs
+schreiben. Fuer den Standard-Trust sollte deshalb CI-Signing die erste Wahl bleiben, ausser du
+willst lokale Signierer bewusst mit vertrauen.
+
 Nur lokal bauen, ohne Publish:
 
 ```bash
@@ -43,12 +47,13 @@ task image:verify
 ```
 
 Standardmaessig vertraut `image:verify` keyless Signaturen, deren Zertifikats-Identity auf
-`.*mwmahlberg.*` passt und deren Issuer entweder GitHub OAuth (lokales Signing) oder GitHub
-Actions OIDC (CI-Signing) ist. Mit `COSIGN_CERTIFICATE_IDENTITY_REGEXP` oder
-`COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` kannst du das bei Bedarf enger ziehen.
+`https://github.com/mwmahlberg/backup/.github/workflows/build-push.yml@refs/heads/(main|develop)`
+passt und deren Issuer GitHub Actions OIDC ist. Mit `COSIGN_CERTIFICATE_IDENTITY_REGEXP` oder
+`COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` kannst du das fuer andere Signierer bewusst anpassen.
 
-> **Hinweis:** Sobald Signing aktiv ist, sollte der `system:rebase`-Task das TARGET-Präfix
-> von `ostree-unverified-registry:` auf `ostree-image-signed:docker://` umstellen.
+> **Hinweis:** Veroeffentlichte Images sind bereits signiert, aber `system:rebase` verwendet
+> aktuell noch `ostree-unverified-registry:`. Die Umstellung auf
+> `ostree-image-signed:docker://` fuer Host-Rebases ist noch ein Folge-Schritt.
 
 ## 3) Erster Rebase (manuell)
 
@@ -87,7 +92,7 @@ sudo systemctl reboot
 
 ## Gesamter Workflow (Zusammenfassung)
 
-1. `task image:push` — Image bauen und pushen
+1. `task image:push` — Image bauen, pushen und signieren
 2. `task system:rebase` — System rebasen (mit Digest-Pinning)
 3. Neu starten
 4. `backup-task restore:full` — Home aus Snapshot wiederherstellen (falls nötig)

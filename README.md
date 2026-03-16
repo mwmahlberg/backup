@@ -1,10 +1,13 @@
 # backup
+[![Docker](https://img.shields.io/docker/v/mwmahlberg/kinoite-workstation/43?logo=docker&label=docker)](https://hub.docker.com/r/mwmahlberg/kinoite-workstation)
+[![Version](https://img.shields.io/github/v/tag/mwmahlberg/backup?sort=semver&label=version)](https://github.com/mwmahlberg/backup/tags)
+[![Open Issues](https://img.shields.io/github/issues/mwmahlberg/backup?label=open%20issues)](https://github.com/mwmahlberg/backup/issues)
 
 English docs. Deutsche Version: [README.de.md](README.de.md)
 
 Custom Fedora Kinoite workstation image and reproducible backup/restore workflow using `restic`/`resticprofile`.
 
-## Quickstart (5 commands)
+## Quickstart (6 commands)
 
 No `git clone` required. The required code is shipped in the image under `/usr/share/backup`.
 

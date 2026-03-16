@@ -22,6 +22,10 @@ task image:push
 `image:push` rebuilds automatically when needed (source tracking on `Dockerfile`), logs in first,
 pushes the image, and then signs the pushed digest with `cosign` keyless.
 
+Local keyless signing can publish the identity returned by your IdP into public transparency
+logs. Use CI signing as the default trust anchor unless you intentionally want to trust a
+local signer as well.
+
 Build only, without publishing:
 
 ```bash
@@ -43,12 +47,13 @@ task image:verify
 ```
 
 By default, `image:verify` trusts keyless signatures whose certificate identity matches
-`.*mwmahlberg.*` and whose issuer matches either GitHub OAuth (local signing) or GitHub
-Actions OIDC (CI signing). Override `COSIGN_CERTIFICATE_IDENTITY_REGEXP` or
-`COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` when you want stricter matching.
+`https://github.com/mwmahlberg/backup/.github/workflows/build-push.yml@refs/heads/(main|develop)`
+and whose issuer is GitHub Actions OIDC. Override `COSIGN_CERTIFICATE_IDENTITY_REGEXP` or
+`COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` when you intentionally want to trust a different signer.
 
-> **Note:** Once signing is enabled, the `system:rebase` task should switch TARGET prefix
-> from `ostree-unverified-registry:` to `ostree-image-signed:docker://`.
+> **Note:** Published images are signed today, but `system:rebase` still uses
+> `ostree-unverified-registry:`. Switching host-side rebases to `ostree-image-signed:docker://`
+> is still a follow-up step.
 
 ## 3) First rebase (manual)
 
@@ -109,7 +114,7 @@ sudo systemctl reboot
 
 ## Workflow Summary
 
-1. `task image:push` - build and push image
+1. `task image:push` - build, push, and sign image
 2. `task system:rebase` - rebase system (digest-pinned)
 3. reboot
 4. `backup-task restore:full` - restore home from snapshot (if needed)
