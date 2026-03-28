@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   prepare-release-assets:
-    name: Generate release notes and metadata
+    name: Collect release notes and metadata
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag' && github.ref_name != 'v0.0.0'
 
@@ -25,42 +25,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine previous tag
-        id: previous-tag
+      - name: Verify release files exist
         run: |
           set -euo pipefail
 
-          previous_tag="$(git tag -l 'v*' --sort=creatordate | grep -Fxv "${GITHUB_REF_NAME}" | tail -n1 || true)"
-          if [ -z "${previous_tag}" ]; then
-            echo "No previous tag found for release log generation." >&2
+          for file in CHANGELOG.md releaselog.md; do
+            if [ ! -f "${file}" ]; then
+              echo "Missing required release file: ${file}" >&2
+              exit 1
+            fi
+          done
+
+          if [ ! -s releaselog.md ]; then
+            echo "releaselog.md is empty." >&2
             exit 1
           fi
-
-          echo "previous-tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
-
-      - name: Generate CHANGELOG.md
-        id: changelog-file
-        uses: requarks/changelog-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fromTag: "v0.0.0"
-          toTag: ${{ github.ref_name }}
-          changelogFilePath: CHANGELOG.md
-          includeInvalidCommits: false
-          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
-          writeToFile: true
-
-      - name: Generate releaselog.md
-        id: releaselog-file
-        uses: requarks/changelog-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fromTag: ${{ steps.previous-tag.outputs.previous-tag }}
-          toTag: ${{ github.ref_name }}
-          changelogFilePath: releaselog.md
-          includeInvalidCommits: false
-          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
-          writeToFile: true
 
       - name: Upload release files
         uses: actions/upload-artifact@v4
