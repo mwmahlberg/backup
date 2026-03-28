@@ -1,36 +1,22 @@
-## [0.2.1](https://github.com/mwmahlberg/backup/compare/v0.2.0...v0.2.1) (2026-03-28)
+## [0.2.2](https://github.com/mwmahlberg/backup/compare/v0.2.1...v0.2.2) (2026-03-28)
+
+
+### Features
+
+* Add zram package to host system ([fd1d949](https://github.com/mwmahlberg/backup/commit/fd1d9496b3b150bd6ae69aeec9e008171838986c))
+* **backup:** add recovery guides for fresh restores ([8215089](https://github.com/mwmahlberg/backup/commit/8215089886ba73c02ae5e2434b9808fa53e4f0c8))
+* **backup:** add usb settings save and restore tasks ([f98ccb3](https://github.com/mwmahlberg/backup/commit/f98ccb3a120eca48a12d505d78210dd2a88991f6))
 
 
 ### Bug Fixes
 
 * **ci:** Correct handling of version perfix "v" ([2ef6ada](https://github.com/mwmahlberg/backup/commit/2ef6ada7430a7e8648ebe78c22bd35eadb4accea))
 * **ci:** do not skip ci when changelogs are pushed. ([77744b8](https://github.com/mwmahlberg/backup/commit/77744b834c459abb53562feb31f4e097fe7b9ff0))
+* **ci:** Explicitly do not skip ci after changelog generation ([e281726](https://github.com/mwmahlberg/backup/commit/e281726216739a86f83e401d6faf1fd5a903b06f))
 * **ci:** publish tagged release assets from git ([0ba4f48](https://github.com/mwmahlberg/backup/commit/0ba4f48ab74431d83ef5d03ac07ffdd3a8c054a1))
 * **ci:** Use tag range to generate CHANGELOG.md ([ee945e1](https://github.com/mwmahlberg/backup/commit/ee945e113c43747cbabf47c7264e15e1156c4ba6))
 
-
-### Features
-
-* **backup:** add recovery guides for fresh restores ([8215089](https://github.com/mwmahlberg/backup/commit/8215089886ba73c02ae5e2434b9808fa53e4f0c8))
-* **backup:** add usb settings save and restore tasks ([f98ccb3](https://github.com/mwmahlberg/backup/commit/f98ccb3a120eca48a12d505d78210dd2a88991f6))
-
-
-
-# [0.1.0](https://github.com/mwmahlberg/backup/compare/v0.0.0...v0.1.0) (2026-03-16)
-
-
-### Bug Fixes
-
-* **ci:** normalize v-prefix handling for git-flow releases ([d9b9027](https://github.com/mwmahlberg/backup/commit/d9b90270f4750bcece767d60db17574b38e61959))
-* **ci:** simplify auto-approve using GITHUB_TOKEN with review message ([d3d82b3](https://github.com/mwmahlberg/backup/commit/d3d82b3bac2ddb8c36420f2a9557953662e60a88))
-* **image:** install cosign binary from upstream release ([6959c67](https://github.com/mwmahlberg/backup/commit/6959c6788307d3b05d30e63c48b30a5a115c2f21))
-* **kinoite:** avoid rpmfusion base/layer conflicts on rebase ([902530e](https://github.com/mwmahlberg/backup/commit/902530e21685b4ac79b3c28ee0f1a926a09de9ad))
-* **kinoite:** use stable rpmfusion keys and precreate alloy user ([e285fb4](https://github.com/mwmahlberg/backup/commit/e285fb47b0caec34c7a132eaa30a200a2ea5a7cb))
-* **restic:** add schedule-jitter to prevent boot-time lock races ([9209067](https://github.com/mwmahlberg/backup/commit/9209067beeb1bd94eae06f0dc7028f9a6ba0fcc0))
-* **restic:** move prevent-sleep to [global], update config path to XDG ([472d122](https://github.com/mwmahlberg/backup/commit/472d1225070215b8915bcff0b42f627f7e9be1a8))
-* **restic:** set quarter-past check schedule with lock wait ([a226510](https://github.com/mwmahlberg/backup/commit/a226510c5ad07d6e131adb4a342a00c20e66ab9e))
-* **restic:** use RESTIC_REPOSITORY env var instead of hardcoded URL ([5a0610b](https://github.com/mwmahlberg/backup/commit/5a0610b2fbd5167d0644c2d7761303c6c2abae49))
-* **restore:** exclude restic config from backup and restore ([4e401b4](https://github.com/mwmahlberg/backup/commit/4e401b4cf1c43ab783cd2da802c7e8ab108bfbce))
+## [0.1.0](https://github.com/mwmahlberg/backup/compare/v0.0.0...v0.1.0) (2026-03-16)
 
 
 ### Features
@@ -64,8 +50,18 @@
 * **taskfile:** externalize namespaced tasks and enable interactive prompting ([88f2a3c](https://github.com/mwmahlberg/backup/commit/88f2a3c750a20696eaa068028f6edb53bf87e07a)), closes [#2579](https://github.com/mwmahlberg/backup/issues/2579)
 
 
+### Bug Fixes
 
-# 0.0.0 (2026-03-14)
+* **ci:** normalize v-prefix handling for git-flow releases ([d9b9027](https://github.com/mwmahlberg/backup/commit/d9b90270f4750bcece767d60db17574b38e61959))
+* **ci:** simplify auto-approve using GITHUB_TOKEN with review message ([d3d82b3](https://github.com/mwmahlberg/backup/commit/d3d82b3bac2ddb8c36420f2a9557953662e60a88))
+* **image:** install cosign binary from upstream release ([6959c67](https://github.com/mwmahlberg/backup/commit/6959c6788307d3b05d30e63c48b30a5a115c2f21))
+* **kinoite:** avoid rpmfusion base/layer conflicts on rebase ([902530e](https://github.com/mwmahlberg/backup/commit/902530e21685b4ac79b3c28ee0f1a926a09de9ad))
+* **kinoite:** use stable rpmfusion keys and precreate alloy user ([e285fb4](https://github.com/mwmahlberg/backup/commit/e285fb47b0caec34c7a132eaa30a200a2ea5a7cb))
+* **restic:** add schedule-jitter to prevent boot-time lock races ([9209067](https://github.com/mwmahlberg/backup/commit/9209067beeb1bd94eae06f0dc7028f9a6ba0fcc0))
+* **restic:** move prevent-sleep to [global], update config path to XDG ([472d122](https://github.com/mwmahlberg/backup/commit/472d1225070215b8915bcff0b42f627f7e9be1a8))
+* **restic:** set quarter-past check schedule with lock wait ([a226510](https://github.com/mwmahlberg/backup/commit/a226510c5ad07d6e131adb4a342a00c20e66ab9e))
+* **restic:** use RESTIC_REPOSITORY env var instead of hardcoded URL ([5a0610b](https://github.com/mwmahlberg/backup/commit/5a0610b2fbd5167d0644c2d7761303c6c2abae49))
+* **restore:** exclude restic config from backup and restore ([4e401b4](https://github.com/mwmahlberg/backup/commit/4e401b4cf1c43ab783cd2da802c7e8ab108bfbce))
 
-
+## 0.0.0 (2026-03-14)
 
