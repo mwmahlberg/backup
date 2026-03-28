@@ -73,7 +73,8 @@ RUN rpm-ostree install \
     libva-utils \
     powertop \
     restic \
-    vim-enhanced
+    vim-enhanced \
+    zram-generator
 
 RUN ln -sf /usr/bin/go-task /usr/bin/task
 
@@ -142,8 +143,8 @@ RUN chmod 0755 /usr/share/backup/restic/hooks/*.sh /usr/share/backup/restore/*.s
 
 # Harden the default container policy while keeping the known bootstrap sources explicit.
 RUN jq '.default = [{"type":"reject"}] | .transports["docker-daemon"][""] = [{"type":"insecureAcceptAnything"}] | .transports.docker = {"docker.io/mwmahlberg/kinoite-workstation": [{"type":"insecureAcceptAnything"}]}' /etc/containers/policy.json > /tmp/policy.json \
-  && install -m 0644 /tmp/policy.json /etc/containers/policy.json \
-  && rm -f /tmp/policy.json
+    && install -m 0644 /tmp/policy.json /etc/containers/policy.json \
+    && rm -f /tmp/policy.json
 
 # Commit the resulting ostree container layer.
 RUN ostree container commit
