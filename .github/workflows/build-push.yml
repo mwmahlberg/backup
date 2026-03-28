@@ -222,7 +222,7 @@ jobs:
           printf 'SHOULD_SIGN=%s\nPRIMARY_TAG=%s\nIMAGE_DIGEST=%s\n' "${SHOULD_SIGN}" "${PRIMARY_TAG}" "${IMAGE_DIGEST}" > "/tmp/sign-input/${{ matrix.branch }}.env"
 
       - name: Upload signing metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sign-input-${{ matrix.branch }}
           path: /tmp/sign-input/${{ matrix.branch }}.env
