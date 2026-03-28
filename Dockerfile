@@ -62,6 +62,7 @@ RUN rpm-ostree install \
     alloy \
     code \
     direnv \
+    gh \
     git \
     go-task \
     gstreamer1-plugins-bad-freeworld \
