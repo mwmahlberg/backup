@@ -175,14 +175,10 @@ Details: [docs/restore.md](docs/restore.md)
 
 For unattended updates on Kinoite, use a moving image tag and enable `rpm-ostree` automatic staging.
 
-Switch to your desired update channel:
+Switch to the published update channel:
 
 ```bash
-# stable channel (main builds)
 task system:channel:stable
-
-# dev channel (develop builds)
-task system:channel:dev
 
 sudo systemctl reboot
 ```
@@ -201,11 +197,9 @@ task system:auto-update:status
 
 ## Git-Flow Release Workflow
 
-Release automation is split into two stages to match `git-flow`:
+Release automation is split into validation and publication:
 
-1. Push to `release/vX.Y.Z` (or `release/X.Y.Z`) and `hotfix/vX.Y.Z` (or `hotfix/X.Y.Z`): CI validates the branch, generates `CHANGELOG.md` and `releaselog.md` from Conventional Commits, and commits both files back to the same branch.
-2. Finish the branch (`git flow release finish vX.Y.Z` or `git flow hotfix finish vX.Y.Z`) and push tags: CI only creates/updates a GitHub Release for `vX.Y.Z`.
+1. Push to `release/vX.Y.Z` (or `release/X.Y.Z`) and `hotfix/vX.Y.Z` (or `hotfix/X.Y.Z`): CI validates that the image builds successfully, generates `CHANGELOG.md` and `releaselog.md`, and commits both files back to the branch. Nothing is pushed to Docker Hub and nothing is signed yet.
+2. Push a new tag `vX.Y.Z`: CI generates `CHANGELOG.md` and `releaselog.md`, publishes the GitHub Release, bakes both files into `/usr/share/backup`, builds the final image, pushes it to Docker Hub with the tags `<upstream-sha-short>-<repo-version>` and `43`, and signs the published image.
 
-The GitHub Release intentionally has no artifacts and contains only a link to the versioned README:
-
-`https://github.com/mwmahlberg/backup/blob/vX.Y.Z/README.md`
+Dependabot-triggered Fedora Kinoite base image updates follow the same `git-flow` path automatically: CI creates a release branch from `develop`, validates it, and finishes the release when the branch build succeeds.

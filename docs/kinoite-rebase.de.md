@@ -47,7 +47,7 @@ task image:verify
 ```
 
 Standardmaessig vertraut `image:verify` keyless Signaturen, deren Zertifikats-Identity auf
-`https://github.com/mwmahlberg/backup/.github/workflows/build-push.yml@refs/heads/(main|develop)`
+`https://github.com/mwmahlberg/backup/.github/workflows/publish-release.yml@refs/tags/v.+`
 passt und deren Issuer GitHub Actions OIDC ist. Mit `COSIGN_CERTIFICATE_IDENTITY_REGEXP` oder
 `COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` kannst du das fuer andere Signierer bewusst anpassen.
 

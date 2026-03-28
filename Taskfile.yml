@@ -9,6 +9,8 @@ includes:
     taskfile: ./.task/ostree.yml
   restore:
     taskfile: ./.task/restore.yml
+  release:
+    taskfile: ./.task/release.yml
   secrets:
     taskfile: ./.task/secrets.yml
   setup:

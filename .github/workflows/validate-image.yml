@@ -1,0 +1,120 @@
+name: Validate image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+
+concurrency:
+  group: validate-image-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-validation:
+    name: Validate image build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image for validation
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-release-notes:
+    name: Update release notes on branch
+    needs:
+      - build-validation
+    if: |
+      github.event_name == 'push' &&
+      (startsWith(github.ref_name, 'release/') || startsWith(github.ref_name, 'hotfix/')) &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Derive release metadata
+        id: release-meta
+        run: |
+          set -euo pipefail
+
+          case "${GITHUB_REF_NAME}" in
+            release/*)
+              version="${GITHUB_REF_NAME#release/}"
+              branch_kind="release"
+              ;;
+            hotfix/*)
+              version="${GITHUB_REF_NAME#hotfix/}"
+              branch_kind="hotfix"
+              ;;
+            *)
+              echo "Unsupported branch ${GITHUB_REF_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+          if ! printf '%s' "${version}" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Branch name must look like ${branch_kind}/vX.Y.Z or ${branch_kind}/X.Y.Z" >&2
+            exit 1
+          fi
+
+          release_tag="v${version#v}"
+          echo "branch-kind=${branch_kind}" >> "${GITHUB_OUTPUT}"
+          echo "release-tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate CHANGELOG.md
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-branch: ${{ github.ref_name }}
+          git-message: 'docs(${{ steps.release-meta.outputs.branch-kind }}): update CHANGELOG.md for ${{ steps.release-meta.outputs.release-tag }} [skip ci]'
+          output-file: CHANGELOG.md
+          release-count: "0"
+          skip-ci: "true"
+          skip-version-file: "true"
+          skip-tag: "true"
+          skip-git-pull: "true"
+          create-summary: "true"
+
+      - name: Generate releaselog.md
+        id: releaselog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-branch: ${{ github.ref_name }}
+          git-message: 'docs(${{ steps.release-meta.outputs.branch-kind }}): update releaselog.md for ${{ steps.release-meta.outputs.release-tag }} [skip ci]'
+          output-file: releaselog.md
+          release-count: "1"
+          skip-ci: "true"
+          skip-version-file: "true"
+          skip-tag: "true"
+          skip-git-pull: "true"
+          create-summary: "true"

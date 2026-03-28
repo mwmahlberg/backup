@@ -1,0 +1,117 @@
+name: Dependabot release start
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: dependabot-release-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  guard:
+    name: Validate release preconditions
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == 'develop' &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    outputs:
+      eligible: ${{ steps.eligibility.outputs.eligible }}
+      digest: ${{ steps.eligibility.outputs.digest }}
+
+    steps:
+      - name: Checkout repository metadata
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Validate PR eligibility
+        id: eligibility
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            if (files.length !== 1 || files[0].filename !== 'Dockerfile') {
+              core.info('Only Dockerfile-only base image update PRs are eligible.');
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            const patch = files[0].patch || '';
+            const match = patch.match(/(^|\n)\+FROM\s+quay\.io\/fedora-ostree-desktops\/kinoite:43(?:\s|$)/m);
+            if (!match) {
+              core.info('No Fedora 43 Kinoite base image update found; skipping.');
+              core.setOutput('eligible', 'false');
+              return;
+            }
+
+            core.setOutput('eligible', 'true');
+
+      - name: Ensure no active release or hotfix branch exists
+        if: steps.eligibility.outputs.eligible == 'true'
+        run: |
+          active_branches="$(git ls-remote --heads origin 'refs/heads/release/*' 'refs/heads/hotfix/*')"
+          if [ -n "${active_branches}" ]; then
+            echo "A release or hotfix branch is already active; skipping automated release creation."
+            exit 1
+          fi
+
+  create-release-candidate:
+    name: Create release candidate branch
+    if: |
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.base.ref == 'develop' &&
+      github.event.pull_request.draft == false &&
+      needs.guard.outputs.eligible == 'true'
+    needs:
+      - guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v6
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Configure git author
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch PR branch
+        run: |
+          git fetch --no-tags origin "refs/pull/${{ github.event.pull_request.number }}/head:pr-head"
+
+      - name: Create release candidate commit
+        run: |
+          set -euo pipefail
+
+          git checkout -b "automation/dependabot-image-release/${{ github.event.pull_request.number }}" origin/develop
+          git checkout pr-head -- Dockerfile
+
+          upstream_digest="$(skopeo inspect --format '{{.Digest}}' docker://quay.io/fedora-ostree-desktops/kinoite:43)"
+          short_digest="$(printf '%s' "${upstream_digest#sha256:}" | cut -c1-12)"
+
+          git add Dockerfile
+          git commit -m "feat: Update to upstream ${short_digest}"
+
+      - name: Push release candidate branch
+        run: |
+          git push origin "automation/dependabot-image-release/${{ github.event.pull_request.number }}"
