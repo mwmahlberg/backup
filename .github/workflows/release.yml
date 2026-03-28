@@ -140,7 +140,7 @@ jobs:
           writeToFile: false
 
       - name: Publish GitHub release
-        uses: ncipollo/release-action@v1.20.0
+        uses: ncipollo/release-action@v1.21.0
         with:
           allowUpdates: true
           body: |
