@@ -47,7 +47,7 @@ task image:verify
 ```
 
 By default, `image:verify` trusts keyless signatures whose certificate identity matches
-`https://github.com/mwmahlberg/backup/.github/workflows/build-push.yml@refs/heads/(main|develop)`
+`https://github.com/mwmahlberg/backup/.github/workflows/publish-release.yml@refs/tags/v.+`
 and whose issuer is GitHub Actions OIDC. Override `COSIGN_CERTIFICATE_IDENTITY_REGEXP` or
 `COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP` when you intentionally want to trust a different signer.
 
@@ -86,15 +86,11 @@ task system:rebase
 
 ### Optional: In-system automatic updates
 
-If you want the host to pull updates automatically, rebase once to a moving channel tag and enable
-`rpm-ostree` automatic staging:
+If you want the host to pull updates automatically, rebase once to the published channel tag and
+enable `rpm-ostree` automatic staging:
 
 ```bash
-# stable channel (tracks main builds)
 task system:channel:stable
-
-# or dev channel (tracks develop builds)
-# task system:channel:dev
 
 sudo systemctl reboot
 task system:auto-update:enable

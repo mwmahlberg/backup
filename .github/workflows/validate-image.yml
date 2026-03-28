@@ -1,0 +1,152 @@
+name: Validate image
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'hotfix/**'
+
+concurrency:
+  group: validate-image-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-validation:
+    name: Validate image build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build image for validation
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  update-release-notes:
+    name: Update release notes on branch
+    needs:
+      - build-validation
+    if: |
+      github.event_name == 'push' &&
+      (startsWith(github.ref_name, 'release/') || startsWith(github.ref_name, 'hotfix/')) &&
+      (github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Derive release metadata
+        id: release-meta
+        run: |
+          set -euo pipefail
+
+          case "${GITHUB_REF_NAME}" in
+            release/*)
+              version="${GITHUB_REF_NAME#release/}"
+              branch_kind="release"
+              ;;
+            hotfix/*)
+              version="${GITHUB_REF_NAME#hotfix/}"
+              branch_kind="hotfix"
+              ;;
+            *)
+              echo "Unsupported branch ${GITHUB_REF_NAME}" >&2
+              exit 1
+              ;;
+          esac
+
+          if ! printf '%s' "${version}" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Branch name must look like ${branch_kind}/vX.Y.Z or ${branch_kind}/X.Y.Z" >&2
+            exit 1
+          fi
+
+          release_tag="v${version#v}"
+          echo "branch-kind=${branch_kind}" >> "${GITHUB_OUTPUT}"
+          echo "release-tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create temporary local release tag
+        run: |
+          set -euo pipefail
+
+          if git rev-parse "${{ steps.release-meta.outputs.release-tag }}" >/dev/null 2>&1; then
+            echo "Local tag ${{ steps.release-meta.outputs.release-tag }} already exists."
+          else
+            git tag "${{ steps.release-meta.outputs.release-tag }}"
+          fi
+
+      - name: Determine previous release tag
+        id: previous-tag
+        run: |
+          set -euo pipefail
+
+          previous_tag="$(git tag --sort=creatordate --merged HEAD 'v*' \
+            | grep -Fxv "${{ steps.release-meta.outputs.release-tag }}" \
+            | tail -n1)"
+
+          if [ -z "${previous_tag}" ]; then
+            echo "No previous release tag found for release log generation." >&2
+            exit 1
+          fi
+
+          echo "previous-tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate CHANGELOG.md
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.release-meta.outputs.release-tag }}
+          changelogFilePath: CHANGELOG.md
+          includeInvalidCommits: false
+          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
+          writeToFile: true
+
+      - name: Generate releaselog.md
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fromTag: ${{ steps.previous-tag.outputs.previous-tag }}
+          toTag: ${{ steps.release-meta.outputs.release-tag }}
+          changelogFilePath: releaselog.md
+          includeInvalidCommits: false
+          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
+          writeToFile: true
+
+      - name: Remove temporary local release tag
+        if: always()
+        run: |
+          if git rev-parse "${{ steps.release-meta.outputs.release-tag }}" >/dev/null 2>&1 \
+            && [ "$(git rev-list -n 1 "${{ steps.release-meta.outputs.release-tag }}")" = "$(git rev-parse HEAD)" ]; then
+            git tag -d "${{ steps.release-meta.outputs.release-tag }}"
+          fi
+
+      - name: Commit generated release notes
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          branch: ${{ github.ref_name }}
+          commit_message: 'docs(${{ steps.release-meta.outputs.branch-kind }}): update changelogs for ${{ steps.release-meta.outputs.release-tag }} [skip ci]'
+          file_pattern: CHANGELOG.md releaselog.md

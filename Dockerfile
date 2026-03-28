@@ -137,6 +137,8 @@ COPY restore/ /usr/share/backup/restore/
 COPY docs/ /usr/share/backup/docs/
 COPY README.md /usr/share/backup/README.md
 COPY README.de.md /usr/share/backup/README.de.md
+COPY CHANGELOG.md /usr/share/backup/CHANGELOG.md
+COPY releaselog.md /usr/share/backup/releaselog.md
 RUN chmod 0755 /usr/share/backup/restic/hooks/*.sh /usr/share/backup/restore/*.sh \
     && ln -sf /usr/share/backup/restore/backup-init.sh /usr/bin/backup-init \
     && ln -sf /usr/share/backup/restore/backup-task.sh /usr/bin/backup-task

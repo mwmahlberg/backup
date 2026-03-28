@@ -1,0 +1,57 @@
+name: Dependabot release resolve version
+
+on:
+  push:
+    branches:
+      - 'automation/dependabot-image-release/**'
+
+concurrency:
+  group: dependabot-resolve-version-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  get-next-version:
+    uses: semantic-release-action/next-release-version/.github/workflows/next-release-version.yml@v4
+
+  create-release-branch:
+    name: Create git-flow release branch
+    if: needs.get-next-version.outputs.new-release-published == 'true'
+    needs:
+      - get-next-version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout candidate branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Push release branch
+        env:
+          RELEASE_VERSION: ${{ needs.get-next-version.outputs.new-release-version }}
+          CANDIDATE_BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          release_branch="release/${RELEASE_VERSION}"
+          git branch -M "${release_branch}"
+          git push origin "${release_branch}"
+          git push origin --delete "${CANDIDATE_BRANCH}"
+
+  cleanup-candidate-branch:
+    name: Remove unused candidate branch
+    if: needs.get-next-version.outputs.new-release-published != 'true'
+    needs:
+      - get-next-version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete candidate branch
+        env:
+          CANDIDATE_BRANCH: ${{ github.ref_name }}
+        run: |
+          git push origin --delete "${CANDIDATE_BRANCH}"

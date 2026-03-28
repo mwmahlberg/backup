@@ -1,0 +1,177 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release-assets:
+    name: Generate release notes and metadata
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && github.ref_name != 'v0.0.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine previous tag
+        id: previous-tag
+        run: |
+          set -euo pipefail
+
+          previous_tag="$(git tag --sort=creatordate 'v*' | grep -Fxv "${GITHUB_REF_NAME}" | tail -n1 || true)"
+          if [ -z "${previous_tag}" ]; then
+            echo "No previous tag found for release log generation." >&2
+            exit 1
+          fi
+
+          echo "previous-tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate CHANGELOG.md
+        id: changelog-file
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fromTag: "v0.0.0"
+          toTag: ${{ github.ref_name }}
+          changelogFilePath: CHANGELOG.md
+          includeInvalidCommits: false
+          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
+          writeToFile: true
+
+      - name: Generate releaselog.md
+        id: releaselog-file
+        uses: requarks/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fromTag: ${{ steps.previous-tag.outputs.previous-tag }}
+          toTag: ${{ github.ref_name }}
+          changelogFilePath: releaselog.md
+          includeInvalidCommits: false
+          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
+          writeToFile: true
+
+      - name: Upload release files
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            CHANGELOG.md
+            releaselog.md
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: ncipollo/release-action@v1.21.0
+        with:
+          allowUpdates: true
+          artifacts: CHANGELOG.md,releaselog.md
+          bodyFile: releaselog.md
+          draft: false
+          makeLatest: true
+          name: ${{ github.ref_name }}
+          tag: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-image:
+    name: Build and push release image
+    runs-on: ubuntu-latest
+    needs:
+      - prepare-release-assets
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download release files
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: .
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Resolve release image tags
+        id: image-tags
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          upstream_digest="$(skopeo inspect --format '{{.Digest}}' docker://quay.io/fedora-ostree-desktops/kinoite:43)"
+          echo "upstream-short=$(printf '%s' "${upstream_digest#sha256:}" | cut -c1-12)" >> "${GITHUB_OUTPUT}"
+          echo "repo-version=${RELEASE_TAG#v}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build and push release image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: |
+            docker.io/mwmahlberg/kinoite-workstation:${{ steps.image-tags.outputs.upstream-short }}-${{ steps.image-tags.outputs.repo-version }}
+            docker.io/mwmahlberg/kinoite-workstation:43
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  sign-image:
+    name: Sign release image
+    runs-on: ubuntu-latest
+    needs:
+      - prepare-release-assets
+      - publish-image
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Resolve release image tag
+        id: image-tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          upstream_digest="$(skopeo inspect --format '{{.Digest}}' docker://quay.io/fedora-ostree-desktops/kinoite:43)"
+          upstream_short="$(printf '%s' "${upstream_digest#sha256:}" | cut -c1-12)"
+          echo "primary-tag=docker.io/mwmahlberg/kinoite-workstation:${upstream_short}-${RELEASE_TAG#v}" >> "${GITHUB_OUTPUT}"
+
+      - name: Sign pushed image
+        env:
+          PRIMARY_TAG: ${{ steps.image-tag.outputs.primary-tag }}
+          IMAGE_DIGEST: ${{ needs.publish-image.outputs.image-digest }}
+        run: |
+          cosign sign --yes "${PRIMARY_TAG}@${IMAGE_DIGEST}"

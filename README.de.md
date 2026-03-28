@@ -168,11 +168,9 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 
 ## Git-Flow Release-Workflow
 
-Die Release-Automation ist passend zu `git-flow` in zwei Schritte aufgeteilt:
+Die Release-Automation ist in Validierung und Veröffentlichung getrennt:
 
-1. Push auf `release/vX.Y.Z` (oder `release/X.Y.Z`) sowie `hotfix/vX.Y.Z` (oder `hotfix/X.Y.Z`): CI validiert die Branch, erzeugt `CHANGELOG.md` und `releaselog.md` aus Conventional Commits und committet beide Dateien zurück in dieselbe Branch.
-2. Branch abschließen (`git flow release finish vX.Y.Z` oder `git flow hotfix finish vX.Y.Z`) und Tags pushen: CI erstellt/aktualisiert nur das GitHub-Release für `vX.Y.Z`.
+1. Push auf `release/vX.Y.Z` (oder `release/X.Y.Z`) sowie `hotfix/vX.Y.Z` (oder `hotfix/X.Y.Z`): CI validiert, dass das Image erfolgreich baut, erzeugt `CHANGELOG.md` und `releaselog.md` und committet beide Dateien zurück in die Branch. Es wird noch nichts zu Docker Hub gepusht und noch nichts signiert.
+2. Push eines neuen Tags `vX.Y.Z`: CI erzeugt `CHANGELOG.md` und `releaselog.md`, veröffentlicht das GitHub-Release, packt beide Dateien nach `/usr/share/backup`, baut das finale Image, pusht es mit den Tags `<upstream-sha-short>-<repo-version>` und `43` zu Docker Hub und signiert das veröffentlichte Image.
 
-Das GitHub-Release enthält bewusst keine Artefakte, sondern nur den Link auf die versionierte README:
-
-`https://github.com/mwmahlberg/backup/blob/vX.Y.Z/README.md`
+Dependabot-ausgelöste Fedora-Kinoite-Base-Image-Updates laufen denselben `git-flow`-Pfad automatisch: CI erzeugt aus `develop` eine Release-Branch, validiert sie und führt den Release-Abschluss aus, sobald der Branch-Build erfolgreich ist.
