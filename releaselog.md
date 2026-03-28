@@ -3,5 +3,6 @@
 
 ### Bug Fixes
 
+* add missing skip-ci parameter ([c834566](https://github.com/mwmahlberg/backup/commit/c83456619f716e5da0de5003a66df3535146b16a))
 * **ci:** Explicitly do not skip ci after changelog generation ([e281726](https://github.com/mwmahlberg/backup/commit/e281726216739a86f83e401d6faf1fd5a903b06f))
 
