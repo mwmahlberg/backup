@@ -1,0 +1,40 @@
+version: '3'
+
+tasks:
+  getversion:
+    desc: Determine the next release version from conventional commits
+    summary: |
+      Run svu locally against the current repository history and print only the
+      resulting SemVer version to stdout.
+    silent: true
+    cmds:
+      - |
+        set -euo pipefail
+
+        PATH="$HOME/.local/bin:$HOME/.asdf/shims:$PATH"
+
+        command -v svu >/dev/null 2>&1 || {
+          echo "Missing required binary: svu" >&2
+          echo "Next step: install svu on the host and rerun task release:getversion." >&2
+          exit 1
+        }
+
+        VERSION="$(svu next)"
+        if [[ -z "${VERSION}" ]]; then
+          echo "No next release version could be determined." >&2
+          exit 1
+        fi
+
+        printf '%s' "$VERSION"
+
+  start:
+    desc: Start a git-flow release branch from the computed next version
+    summary: |
+      Resolve the next release version via release:getversion and create the
+      corresponding git-flow release branch locally.
+    vars:
+      VERSION:
+        sh: task release:getversion
+    cmds:
+      - git flow release start "{{.VERSION}}"
+      - echo "Started release/{{.VERSION}}"
