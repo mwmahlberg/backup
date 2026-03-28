@@ -10,3 +10,4 @@ tmp
 
 # go-task cache
 .task/checksum/
+.codex
