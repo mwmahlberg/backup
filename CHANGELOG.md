@@ -10,6 +10,7 @@
 
 ### Bug Fixes
 
+* add missing skip-ci parameter ([c834566](https://github.com/mwmahlberg/backup/commit/c83456619f716e5da0de5003a66df3535146b16a))
 * **ci:** Correct handling of version perfix "v" ([2ef6ada](https://github.com/mwmahlberg/backup/commit/2ef6ada7430a7e8648ebe78c22bd35eadb4accea))
 * **ci:** do not skip ci when changelogs are pushed. ([77744b8](https://github.com/mwmahlberg/backup/commit/77744b834c459abb53562feb31f4e097fe7b9ff0))
 * **ci:** Explicitly do not skip ci after changelog generation ([e281726](https://github.com/mwmahlberg/backup/commit/e281726216739a86f83e401d6faf1fd5a903b06f))

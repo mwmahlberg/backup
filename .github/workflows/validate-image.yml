@@ -101,6 +101,7 @@ jobs:
           release-count: "0"
           skip-version-file: "true"
           skip-tag: "true"
+          skip-ci: "false"
           skip-git-pull: "true"
           create-summary: "true"
 
@@ -116,5 +117,6 @@ jobs:
           release-count: "1"
           skip-version-file: "true"
           skip-tag: "true"
+          skip-ci: "false"
           skip-git-pull: "true"
           create-summary: "true"
