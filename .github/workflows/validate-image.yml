@@ -119,7 +119,8 @@ jobs:
         uses: requarks/changelog-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.release-meta.outputs.release-tag }}
+          fromTag: v0.0.0
+          toTag: ${{ steps.release-meta.outputs.release-tag }}
           changelogFilePath: CHANGELOG.md
           includeInvalidCommits: false
           restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
