@@ -1,8 +1,12 @@
-## [0.2.2](https://github.com/mwmahlberg/backup/compare/v0.2.1...v0.2.2) (2026-03-28)
+## [0.3.0](https://github.com/mwmahlberg/backup/compare/v0.2.2...v0.3.0) (2026-03-28)
+
+
+### Features
+
+* **ostree:** add zram compressed swap config ([9d87771](https://github.com/mwmahlberg/backup/commit/9d87771da4d7e0007a3d75e6baf911e8ad5636f6))
 
 
 ### Bug Fixes
 
-* add missing skip-ci parameter ([c834566](https://github.com/mwmahlberg/backup/commit/c83456619f716e5da0de5003a66df3535146b16a))
-* **ci:** Explicitly do not skip ci after changelog generation ([e281726](https://github.com/mwmahlberg/backup/commit/e281726216739a86f83e401d6faf1fd5a903b06f))
+* add metadata ([c1e6481](https://github.com/mwmahlberg/backup/commit/c1e6481c16eba0a05863d72688f7de008ae735eb))
 
