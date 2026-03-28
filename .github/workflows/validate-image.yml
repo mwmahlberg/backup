@@ -89,64 +89,32 @@ jobs:
           echo "branch-kind=${branch_kind}" >> "${GITHUB_OUTPUT}"
           echo "release-tag=${release_tag}" >> "${GITHUB_OUTPUT}"
 
-      - name: Create temporary local release tag
-        run: |
-          set -euo pipefail
-
-          if git rev-parse "${{ steps.release-meta.outputs.release-tag }}" >/dev/null 2>&1; then
-            echo "Local tag ${{ steps.release-meta.outputs.release-tag }} already exists."
-          else
-            git tag "${{ steps.release-meta.outputs.release-tag }}"
-          fi
-
-      - name: Determine previous release tag
-        id: previous-tag
-        run: |
-          set -euo pipefail
-
-          previous_tag="$(git tag --sort=creatordate --merged HEAD 'v*' \
-            | grep -Fxv "${{ steps.release-meta.outputs.release-tag }}" \
-            | tail -n1)"
-
-          if [ -z "${previous_tag}" ]; then
-            echo "No previous release tag found for release log generation." >&2
-            exit 1
-          fi
-
-          echo "previous-tag=${previous_tag}" >> "${GITHUB_OUTPUT}"
-
       - name: Generate CHANGELOG.md
-        uses: requarks/changelog-action@v1
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.release-meta.outputs.release-tag }}
-          changelogFilePath: CHANGELOG.md
-          includeInvalidCommits: false
-          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
-          writeToFile: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-branch: ${{ github.ref_name }}
+          git-message: 'docs(${{ steps.release-meta.outputs.branch-kind }}): update CHANGELOG.md for ${{ steps.release-meta.outputs.release-tag }} [skip ci]'
+          output-file: CHANGELOG.md
+          release-count: "0"
+          skip-ci: "true"
+          skip-version-file: "true"
+          skip-tag: "true"
+          skip-git-pull: "true"
+          create-summary: "true"
 
       - name: Generate releaselog.md
-        uses: requarks/changelog-action@v1
+        id: releaselog
+        uses: TriPSs/conventional-changelog-action@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fromTag: ${{ steps.previous-tag.outputs.previous-tag }}
-          toTag: ${{ steps.release-meta.outputs.release-tag }}
-          changelogFilePath: releaselog.md
-          includeInvalidCommits: false
-          restrictToTypes: feat,fix,perf,refactor,build,docs,style,test,chore,ci,revert
-          writeToFile: true
-
-      - name: Remove temporary local release tag
-        if: always()
-        run: |
-          if git rev-parse "${{ steps.release-meta.outputs.release-tag }}" >/dev/null 2>&1 \
-            && [ "$(git rev-list -n 1 "${{ steps.release-meta.outputs.release-tag }}")" = "$(git rev-parse HEAD)" ]; then
-            git tag -d "${{ steps.release-meta.outputs.release-tag }}"
-          fi
-
-      - name: Commit generated release notes
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          branch: ${{ github.ref_name }}
-          commit_message: 'docs(${{ steps.release-meta.outputs.branch-kind }}): update changelogs for ${{ steps.release-meta.outputs.release-tag }} [skip ci]'
-          file_pattern: CHANGELOG.md releaselog.md
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-branch: ${{ github.ref_name }}
+          git-message: 'docs(${{ steps.release-meta.outputs.branch-kind }}): update releaselog.md for ${{ steps.release-meta.outputs.release-tag }} [skip ci]'
+          output-file: releaselog.md
+          release-count: "1"
+          skip-ci: "true"
+          skip-version-file: "true"
+          skip-tag: "true"
+          skip-git-pull: "true"
+          create-summary: "true"

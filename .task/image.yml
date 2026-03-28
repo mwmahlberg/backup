@@ -7,7 +7,7 @@ vars:
   IMAGE:
     sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}"
   COSIGN_CERTIFICATE_IDENTITY_REGEXP:
-    sh: printf '%s' "${COSIGN_CERTIFICATE_IDENTITY_REGEXP:-https://github\\.com/mwmahlberg/backup/\\.github/workflows/build-push\\.yml@refs/heads/(main|develop)}"
+    sh: printf '%s' "${COSIGN_CERTIFICATE_IDENTITY_REGEXP:-https://github\\.com/mwmahlberg/backup/\\.github/workflows/publish-release\\.yml@refs/tags/v.+}"
   COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:
     sh: printf '%s' "${COSIGN_CERTIFICATE_OIDC_ISSUER_REGEXP:-https://token\\.actions\\.githubusercontent\\.com}"
 

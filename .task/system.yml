@@ -7,8 +7,6 @@ vars:
     sh: printf '%s' "${IMAGE_NAME:-docker.io/mwmahlberg/kinoite-workstation:43}" | sed 's/:[^:]*$//'
   CHANNEL_STABLE:
     sh: printf '%s' "${CHANNEL_STABLE_IMAGE:-docker.io/mwmahlberg/kinoite-workstation:43}"
-  CHANNEL_DEV:
-    sh: printf '%s' "${CHANNEL_DEV_IMAGE:-docker.io/mwmahlberg/kinoite-workstation:43-dev}"
 
 tasks:
   rebase:
@@ -32,15 +30,6 @@ tasks:
     prompt: Rebase system to ostree-unverified-registry:docker://{{.CHANNEL_STABLE}}?
     cmds:
       - sudo rpm-ostree rebase "ostree-unverified-registry:docker://{{.CHANNEL_STABLE}}"
-
-  channel:dev:
-    desc: Rebase to the dev floating channel tag
-    summary: |
-      Rebase the system to the dev channel tag and reboot. Use this to track the
-      develop image stream with automatic updates enabled by rpm-ostreed.
-    prompt: Rebase system to ostree-unverified-registry:docker://{{.CHANNEL_DEV}}?
-    cmds:
-      - sudo rpm-ostree rebase "ostree-unverified-registry:docker://{{.CHANNEL_DEV}}"
 
   auto-update:enable:
     desc: Enable staged rpm-ostree automatic updates
