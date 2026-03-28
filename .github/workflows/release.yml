@@ -112,7 +112,7 @@ jobs:
           fi
 
       - name: Commit generated changelogs
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           branch: ${{ github.ref_name }}
           commit_message: 'docs(${{ steps.release-tag.outputs.branch_kind }}): update changelogs for ${{ steps.release-tag.outputs.release_tag }} [skip ci]'
