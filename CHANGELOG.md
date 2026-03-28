@@ -1,121 +1,68 @@
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-## [40b5dfe672b5faf284060b420337785dfa3b3088] - 2026-03-16
-### :sparkles: New Features
-- [`f98ccb3`](https://github.com/mwmahlberg/backup/commit/f98ccb3a120eca48a12d505d78210dd2a88991f6) - **backup**: add usb settings save and restore tasks *(commit by [@mwmahlberg](https://github.com/mwmahlberg))*
-- [`8215089`](https://github.com/mwmahlberg/backup/commit/8215089886ba73c02ae5e2434b9808fa53e4f0c8) - **backup**: add recovery guides for fresh restores *(commit by [@mwmahlberg](https://github.com/mwmahlberg))*
-
-### :construction_worker: Build System
-- [`5605ed6`](https://github.com/mwmahlberg/backup/commit/5605ed66a73bb48b62398ffec7a7ceb8d7725b51) - **image**: harden container policy defaults *(commit by [@mwmahlberg](https://github.com/mwmahlberg))*
-- [`d26684f`](https://github.com/mwmahlberg/backup/commit/d26684f12099a996b5675c49c3c7b4d109902e69) - **workflows**: fix release branch changelog generation *(commit by [@mwmahlberg](https://github.com/mwmahlberg))*
-- [`40b5dfe`](https://github.com/mwmahlberg/backup/commit/40b5dfe672b5faf284060b420337785dfa3b3088) - **workflows**: compare release changelog against branch head *(commit by [@mwmahlberg](https://github.com/mwmahlberg))*
-
-
-## [0.9.2](https://github.com/mwmahlberg/backup/releases/tag/v0.9.2) (2026-03-15)
+## [0.2.1](https://github.com/mwmahlberg/backup/compare/v0.2.0...v0.2.1) (2026-03-28)
 
 
 ### Bug Fixes
 
-* install `cosign` from upstream release binary instead of unavailable RPM package
-
-## [0.9.1](https://github.com/mwmahlberg/backup/releases/tag/v0.9.1) (2026-03-15)
+* **ci:** Use tag range to generate CHANGELOG.md ([ee945e1](https://github.com/mwmahlberg/backup/commit/ee945e113c43747cbabf47c7264e15e1156c4ba6))
 
 
 ### Features
 
-* add `cosign` to the workstation image toolset ([00441cc](https://github.com/mwmahlberg/backup/commit/00441cc))
-
-## [0.9.0](https://github.com/mwmahlberg/backup/releases/tag/v0.9.0) (2026-03-15)
-
-
-### Features
-
-* add daily scheduled Fedora 43 rebuilds for `main` and `develop` ([5213301](https://github.com/mwmahlberg/backup/commit/5213301))
+* **backup:** add recovery guides for fresh restores ([8215089](https://github.com/mwmahlberg/backup/commit/8215089886ba73c02ae5e2434b9808fa53e4f0c8))
+* **backup:** add usb settings save and restore tasks ([f98ccb3](https://github.com/mwmahlberg/backup/commit/f98ccb3a120eca48a12d505d78210dd2a88991f6))
 
 
-### Chores
 
-* sync scheduled rebuild workflow changes from `main` into `develop` ([a1b7ec9](https://github.com/mwmahlberg/backup/commit/a1b7ec9))
-
-## [0.8.1](https://github.com/mwmahlberg/backup/releases/tag/v0.8.1) (2026-03-15)
-
-
-### Features
-
-* add in-system auto-update channel workflow with `rpm-ostree` tasks ([75456a9](https://github.com/mwmahlberg/backup/commit/75456a9))
-* derive image tags from Dockerfile Fedora major and publish channel tags ([f2e63e7](https://github.com/mwmahlberg/backup/commit/f2e63e7))
+# [0.1.0](https://github.com/mwmahlberg/backup/compare/v0.0.0...v0.1.0) (2026-03-16)
 
 
 ### Bug Fixes
 
-* simplify Dependabot PR auto-approval using `GITHUB_TOKEN` review message ([ea5e5a8](https://github.com/mwmahlberg/backup/commit/ea5e5a8))
-
-
-### Chores
-
-* bump GitHub Actions dependencies (`checkout`, `login-action`, `build-push-action`, `setup-buildx-action`, `github-script`) ([c7d2717](https://github.com/mwmahlberg/backup/commit/c7d2717))
-* align README table formatting ([0d1d4b8](https://github.com/mwmahlberg/backup/commit/0d1d4b8))
-
-## [0.8.0](https://github.com/mwmahlberg/backup/releases/tag/v0.8.0) (2026-03-15)
+* **ci:** normalize v-prefix handling for git-flow releases ([d9b9027](https://github.com/mwmahlberg/backup/commit/d9b90270f4750bcece767d60db17574b38e61959))
+* **ci:** simplify auto-approve using GITHUB_TOKEN with review message ([d3d82b3](https://github.com/mwmahlberg/backup/commit/d3d82b3bac2ddb8c36420f2a9557953662e60a88))
+* **image:** install cosign binary from upstream release ([6959c67](https://github.com/mwmahlberg/backup/commit/6959c6788307d3b05d30e63c48b30a5a115c2f21))
+* **kinoite:** avoid rpmfusion base/layer conflicts on rebase ([902530e](https://github.com/mwmahlberg/backup/commit/902530e21685b4ac79b3c28ee0f1a926a09de9ad))
+* **kinoite:** use stable rpmfusion keys and precreate alloy user ([e285fb4](https://github.com/mwmahlberg/backup/commit/e285fb47b0caec34c7a132eaa30a200a2ea5a7cb))
+* **restic:** add schedule-jitter to prevent boot-time lock races ([9209067](https://github.com/mwmahlberg/backup/commit/9209067beeb1bd94eae06f0dc7028f9a6ba0fcc0))
+* **restic:** move prevent-sleep to [global], update config path to XDG ([472d122](https://github.com/mwmahlberg/backup/commit/472d1225070215b8915bcff0b42f627f7e9be1a8))
+* **restic:** set quarter-past check schedule with lock wait ([a226510](https://github.com/mwmahlberg/backup/commit/a226510c5ad07d6e131adb4a342a00c20e66ab9e))
+* **restic:** use RESTIC_REPOSITORY env var instead of hardcoded URL ([5a0610b](https://github.com/mwmahlberg/backup/commit/5a0610b2fbd5167d0644c2d7761303c6c2abae49))
+* **restore:** exclude restic config from backup and restore ([4e401b4](https://github.com/mwmahlberg/backup/commit/4e401b4cf1c43ab783cd2da802c7e8ab108bfbce))
 
 
 ### Features
 
-* add backup checks and pruning ([5659d2f](https://github.com/mwmahlberg/backup/commit/5659d2f))
-* add lock wait and one-file-system backup behavior ([885c6b8](https://github.com/mwmahlberg/backup/commit/885c6b8))
-* exclude directories containing `.resticignore`, `.nobackup`, or `.backupignore` ([764dfb7](https://github.com/mwmahlberg/backup/commit/764dfb7))
-* add `git-flow-next` to the workstation image ([229a3bf](https://github.com/mwmahlberg/backup/commit/229a3bf))
-* add OCI image labels ([fc4ff77](https://github.com/mwmahlberg/backup/commit/fc4ff77))
-* add `go-task` to the image and provide `/usr/bin/task` ([cd04172](https://github.com/mwmahlberg/backup/commit/cd04172))
-* add task automation for build, push, rebase, login, and restore workflows ([5a79535](https://github.com/mwmahlberg/backup/commit/5a79535))
-* ship `backup-init` helper inside the image ([924af7a](https://github.com/mwmahlberg/backup/commit/924af7a))
-* add guided backup and restore UX tasks ([b7847b5](https://github.com/mwmahlberg/backup/commit/b7847b5))
-* externalize namespaced tasks and enable interactive prompting ([3ee3480](https://github.com/mwmahlberg/backup/commit/3ee3480))
-* bundle backup code under `/usr/share/backup` ([f94d68c](https://github.com/mwmahlberg/backup/commit/f94d68c))
-* bundle task configuration files in the image ([4356d2c](https://github.com/mwmahlberg/backup/commit/4356d2c))
-* track all bundled sources for image rebuilds ([a379d88](https://github.com/mwmahlberg/backup/commit/a379d88))
-* add GitHub Actions image build/push workflow and Dependabot configuration ([5bb09e9](https://github.com/mwmahlberg/backup/commit/5bb09e9))
-* auto-approve and auto-merge Dependabot base image updates into `develop` ([d22dbe1](https://github.com/mwmahlberg/backup/commit/d22dbe1))
-* publish `:43-dev` from `develop` and `:43` from `main` ([8250f72](https://github.com/mwmahlberg/backup/commit/8250f72))
+* add checks and pruning ([558acdd](https://github.com/mwmahlberg/backup/commit/558acdd1473d690c1310b58a2f6e9221f4f0f8cd))
+* added lock wait and one-file-system ([e3aefdc](https://github.com/mwmahlberg/backup/commit/e3aefdc44dc95f1be8a00b5f3bb64bbe38a2cabc))
+* **ci:** add daily Fedora 43 rebuilds for main and develop ([7eb714a](https://github.com/mwmahlberg/backup/commit/7eb714a60055a78b2d13dbc887981fca7889b2e8))
+* **ci:** add git-flow release changelog and github release workflow ([541e589](https://github.com/mwmahlberg/backup/commit/541e589f8981d81eab8105a02fdfd3f07ea4dd7e))
+* **ci:** add GitHub Actions build-push workflow and Dependabot config ([42545d1](https://github.com/mwmahlberg/backup/commit/42545d117b8ad07e2b7ba18dfccafd2575ddf015))
+* **ci:** auto-approve and auto-merge dependabot base image updates ([63a013c](https://github.com/mwmahlberg/backup/commit/63a013c18f7454e772e31393736d41f61348a9e3))
+* **ci:** derive image tags from Dockerfile Fedora major ([04ec502](https://github.com/mwmahlberg/backup/commit/04ec502a661ebf477c3cc31d180eaba66cff860b))
+* **ci:** parameterize image builds and add update notification workflow ([e8d2ff3](https://github.com/mwmahlberg/backup/commit/e8d2ff35d64377ec793e523d83e563bf243d3ab0))
+* **ci:** use dev image tag for develop builds ([154fc93](https://github.com/mwmahlberg/backup/commit/154fc93c068e597ceeb17046ad56a05e729161c2))
+* exclude all dirs with ".resticignore",".nobackup" or ".backupignore" present ([69cbb24](https://github.com/mwmahlberg/backup/commit/69cbb24e6b3f13903156f9977da5b1fe3e18a099))
+* **image:** add all bundled sources to image:build sources list ([7212196](https://github.com/mwmahlberg/backup/commit/721219686ec0a6095f289c4807a6df84f4b64a31))
+* **image:** add cosign to workstation image ([1295b78](https://github.com/mwmahlberg/backup/commit/1295b78b297adcd5f0613d6e267e8db066a695f5))
+* **image:** add go-task package and /usr/bin/task symlink ([7467b1b](https://github.com/mwmahlberg/backup/commit/7467b1b92563c7a7fed15ea4cad53d8139b9d732))
+* **image:** add keyless signing workflow ([6677712](https://github.com/mwmahlberg/backup/commit/6677712c569712a427ac49c9c644e2c1c1863615))
+* **image:** bundle backup code under /usr/share/backup ([b2cba85](https://github.com/mwmahlberg/backup/commit/b2cba85e351b2f2620b8c80741fae931a17525b8))
+* **image:** update Containerfile to bundle .task/ and .taskrc.yml ([0b00ae1](https://github.com/mwmahlberg/backup/commit/0b00ae17e1b32726e1bf1e76c402e44c40f06628))
+* **kinoite:** add git-flow-next ([2cba36b](https://github.com/mwmahlberg/backup/commit/2cba36badc01536d870cdd427371c5ee302f6e1d))
+* **kinoite:** add OCI image labels ([643d20a](https://github.com/mwmahlberg/backup/commit/643d20a13d78274d8ebd16cb7860c0b44d68bd96))
+* **restore:** add restore preflight checks and guidance ([d1babc1](https://github.com/mwmahlberg/backup/commit/d1babc1e70e3e56981d6f70d2575bb7117768eae))
+* **restore:** add snapshot selection tasks ([e4d459c](https://github.com/mwmahlberg/backup/commit/e4d459c4363af3d699a8e4f2805f2ddfd2edc74e))
+* **restore:** improve bootstrap progress reporting ([e3dbee6](https://github.com/mwmahlberg/backup/commit/e3dbee6e4607d65fb4d6c5d421e33fa6ef49a616))
+* **restore:** replace git clone with image-bundled seed in backup-init.sh ([491fc7d](https://github.com/mwmahlberg/backup/commit/491fc7d479b6bede73bbeee31c16345ea68f5899))
+* **restore:** ship backup-init helper in image ([2293d9c](https://github.com/mwmahlberg/backup/commit/2293d9ce5ae9280b96803d3fd2017b9a36caf4b9))
+* **system:** add in-system auto-update channel workflow ([fbef30a](https://github.com/mwmahlberg/backup/commit/fbef30a11afe2a984fb44339541614b1a1018922))
+* **taskfile:** add guided backup/restore UX tasks ([5df9096](https://github.com/mwmahlberg/backup/commit/5df90965d4961bddb01b2fab4104101c922bc872))
+* **taskfile:** add task automation for build, push, rebase, login, and restore ([3546dc7](https://github.com/mwmahlberg/backup/commit/3546dc750124504ff97ee2cbc1c026da3b42aaa8))
+* **taskfile:** externalize namespaced tasks and enable interactive prompting ([88f2a3c](https://github.com/mwmahlberg/backup/commit/88f2a3c750a20696eaa068028f6edb53bf87e07a)), closes [#2579](https://github.com/mwmahlberg/backup/issues/2579)
 
 
-### Bug Fixes
 
-* exclude local restic configuration from backup and restore ([65c7927](https://github.com/mwmahlberg/backup/commit/65c7927))
-* avoid RPM Fusion base/layer conflicts during rebase ([fdb2c7e](https://github.com/mwmahlberg/backup/commit/fdb2c7e))
-* use stable RPM Fusion keys and precreate the Alloy user ([71b504e](https://github.com/mwmahlberg/backup/commit/71b504e))
-* set quarter-past check schedule together with lock wait ([38d0991](https://github.com/mwmahlberg/backup/commit/38d0991))
-* add schedule jitter to avoid boot-time lock races ([2eb10e3](https://github.com/mwmahlberg/backup/commit/2eb10e3))
-* move `prevent-sleep` to `[global]` and switch to XDG config paths ([e239395](https://github.com/mwmahlberg/backup/commit/e239395))
-* use `RESTIC_REPOSITORY` from the environment instead of a hardcoded URL ([c7e7300](https://github.com/mwmahlberg/backup/commit/c7e7300))
-* replace `git clone` with image-bundled seeding in `backup-init.sh` ([0541aa0](https://github.com/mwmahlberg/backup/commit/0541aa0))
+# 0.0.0 (2026-03-14)
 
 
-### Refactoring
 
-* enable maximum compression for restic backups ([cf03dee](https://github.com/mwmahlberg/backup/commit/cf03dee))
-* re-apply saved workstation state automatically via `resticprofile` `run-after` ([78c2062](https://github.com/mwmahlberg/backup/commit/78c2062))
-* rename `Containerfile.kinoite` to `Dockerfile` for broader tooling compatibility ([fc4bf63](https://github.com/mwmahlberg/backup/commit/fc4bf63))
-
-
-### Documentation
-
-* expand backup and restore guides and add the DWTFYW license ([370b991](https://github.com/mwmahlberg/backup/commit/370b991))
-* add Kinoite rebase and signing workflow documentation ([c06eecb](https://github.com/mwmahlberg/backup/commit/c06eecb))
-* rewrite documentation in German with task-oriented workflows ([4ed01a7](https://github.com/mwmahlberg/backup/commit/4ed01a7))
-* rename German docs to `*.de.md` and fix internal links ([9e92579](https://github.com/mwmahlberg/backup/commit/9e92579))
-* add English translations for the README and guides ([e042ffe](https://github.com/mwmahlberg/backup/commit/e042ffe))
-* simplify DE/EN guides for the bundled backup workflow ([78f4d94](https://github.com/mwmahlberg/backup/commit/78f4d94))
-* update task references and task tables in the README and guides ([4d72cbb](https://github.com/mwmahlberg/backup/commit/4d72cbb))
-* clarify Silverblue as a valid base for the initial rebase in the README ([4c0cdf3](https://github.com/mwmahlberg/backup/commit/4c0cdf3))
-* improve README and rebase-guide accuracy for the current workflow ([29d0397](https://github.com/mwmahlberg/backup/commit/29d0397))
-
-
-### Chores
-
-* ignore `.envrc` in Git ([7c57e86](https://github.com/mwmahlberg/backup/commit/7c57e86))
-* format markdown tables in project documentation ([e1e6d09](https://github.com/mwmahlberg/backup/commit/e1e6d09))
-* format markdown tables in `README.md` and `README.de.md` ([4b3a673](https://github.com/mwmahlberg/backup/commit/4b3a673))
-[40b5dfe672b5faf284060b420337785dfa3b3088]: https://github.com/mwmahlberg/backup/compare/v0.1.0...40b5dfe672b5faf284060b420337785dfa3b3088
