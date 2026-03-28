@@ -78,6 +78,17 @@ jobs:
           echo "upstream-short=$(printf '%s' "${upstream_digest#sha256:}" | cut -c1-12)" >> "${GITHUB_OUTPUT}"
           echo "repo-version=${RELEASE_TAG#v}" >> "${GITHUB_OUTPUT}"
 
+      - name: Resolve release metadata labels
+        id: image-meta
+        env:
+          REPO_VERSION: ${{ steps.image-tags.outputs.repo-version }}
+        run: |
+          set -euo pipefail
+
+          created_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "created-utc=${created_utc}" >> "${GITHUB_OUTPUT}"
+          echo "image-version=${REPO_VERSION}+${created_utc}.UTC" >> "${GITHUB_OUTPUT}"
+
       - name: Build and push release image
         id: build
         uses: docker/build-push-action@v7
@@ -89,6 +100,9 @@ jobs:
           tags: |
             docker.io/mwmahlberg/kinoite-workstation:${{ steps.image-tags.outputs.upstream-short }}-${{ steps.image-tags.outputs.repo-version }}
             docker.io/mwmahlberg/kinoite-workstation:43
+          labels: |
+            org.opencontainers.image.created=${{ steps.image-meta.outputs.created-utc }}
+            org.opencontainers.image.version=${{ steps.image-meta.outputs.image-version }}
 
   sign-image:
     name: Sign release image
