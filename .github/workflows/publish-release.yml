@@ -84,12 +84,11 @@ jobs:
         with:
           context: .
           file: Dockerfile
+          no-cache: true
           push: true
           tags: |
             docker.io/mwmahlberg/kinoite-workstation:${{ steps.image-tags.outputs.upstream-short }}-${{ steps.image-tags.outputs.repo-version }}
             docker.io/mwmahlberg/kinoite-workstation:43
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
   sign-image:
     name: Sign release image
