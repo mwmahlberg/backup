@@ -3,6 +3,7 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+    target-branch: develop
     schedule:
       interval: weekly
     commit-message:
@@ -15,3 +16,8 @@ updates:
       interval: daily
     commit-message:
       prefix: "feat(image)"
+    ignore:
+      # Stay on the Fedora 43 base-image line; Dependabot should only refresh the pinned digest.
+      - dependency-name: "fedora-ostree-desktops/kinoite"
+        versions:
+          - ">= 44"
