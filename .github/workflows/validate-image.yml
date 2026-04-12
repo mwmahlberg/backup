@@ -91,7 +91,7 @@ jobs:
 
       - name: Generate CHANGELOG.md
         id: changelog
-        uses: TriPSs/conventional-changelog-action@v5
+        uses: TriPSs/conventional-changelog-action@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           git-branch: ${{ github.ref_name }}
@@ -107,7 +107,7 @@ jobs:
 
       - name: Generate releaselog.md
         id: releaselog
-        uses: TriPSs/conventional-changelog-action@v5
+        uses: TriPSs/conventional-changelog-action@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           git-branch: ${{ github.ref_name }}
