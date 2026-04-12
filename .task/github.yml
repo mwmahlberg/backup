@@ -1,0 +1,93 @@
+version: '3'
+silent: true
+
+tasks:
+  dry-run:
+    desc: Dry-run the Dependabot GitHub Actions workflows with act
+    summary: |
+      Run local act-based dry-runs for the Dependabot image update and automated
+      release finish workflows inside the dev toolbox container. This validates
+      workflow triggers, conditions, and planned steps without performing pushes,
+      comments, or pull request updates on GitHub.
+    cmds:
+      - |
+        set -euo pipefail
+
+        if ! command -v toolbox >/dev/null 2>&1; then
+          echo "Missing required binary: toolbox" >&2
+          exit 1
+        fi
+
+        if ! toolbox list 2>/dev/null | awk 'NF {print $1}' | grep -Fxq dev; then
+          echo "Missing toolbox container: dev" >&2
+          echo "Next step: create it first, for example with 'toolbox create --assumeyes --image docker.io/library/fedora:43 dev'." >&2
+          exit 1
+        fi
+
+        if ! toolbox run --container dev bash -lc 'test -x "$HOME/.local/bin/act-gh"' >/dev/null 2>&1; then
+          echo "Missing nektos/act in toolbox container: dev" >&2
+          echo "Next step: install it as '$HOME/.local/bin/act-gh' inside the toolbox before rerunning this task." >&2
+          exit 1
+        fi
+
+        TMPDIR_LOCAL="$(mktemp -d)"
+        trap 'rm -rf "$TMPDIR_LOCAL"' EXIT
+
+        cat >"$TMPDIR_LOCAL/dependabot-pr-event.json" <<'EOF'
+        {
+          "pull_request": {
+            "number": 123,
+            "draft": false,
+            "user": {
+              "login": "dependabot[bot]"
+            },
+            "base": {
+              "ref": "develop"
+            }
+          },
+          "repository": {
+            "name": "backup",
+            "owner": {
+              "login": "mwmahlberg"
+            }
+          }
+        }
+        EOF
+
+        cat >"$TMPDIR_LOCAL/release-finish-event.json" <<'EOF'
+        {
+          "workflow_run": {
+            "conclusion": "success",
+            "event": "push",
+            "head_branch": "release/1.2.3",
+            "head_sha": "0123456789abcdef0123456789abcdef01234567"
+          },
+          "repository": {
+            "name": "backup",
+            "owner": {
+              "login": "mwmahlberg"
+            }
+          }
+        }
+        EOF
+
+        echo "Dry-run: dependabot-release.yml"
+        toolbox run --container dev bash -lc "
+          cd '$PWD' &&
+          ~/.local/bin/act-gh pull_request_target \
+            -W .github/workflows/dependabot-release.yml \
+            -e '$TMPDIR_LOCAL/dependabot-pr-event.json' \
+            -P ubuntu-latest=node:18-bullseye \
+            -n
+        "
+
+        echo
+        echo "Dry-run: release-finish.yml"
+        toolbox run --container dev bash -lc "
+          cd '$PWD' &&
+          ~/.local/bin/act-gh workflow_run \
+            -W .github/workflows/release-finish.yml \
+            -e '$TMPDIR_LOCAL/release-finish-event.json' \
+            -P ubuntu-latest=node:18-bullseye \
+            -n
+        "

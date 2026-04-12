@@ -3,6 +3,8 @@ version: '3'
 includes:
   backup:
     taskfile: ./.task/backup.yml
+  github:
+    taskfile: ./.task/github.yml
   image:
     taskfile: ./.task/image.yml
   ostree:
