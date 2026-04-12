@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IFACE="${1:-}"
+ACTION="${2:-}"
+
+# Nur für WLAN-Verbindungen
+if [[ -z "${IFACE}" || ! -e "/sys/class/net/${IFACE}" ]]; then
+  exit 0
+fi
+
+if [[ ! -d "/sys/class/net/${IFACE}/wireless" ]]; then
+  exit 0
+fi
+
+# Parameter für deine O2-5G-Box
+DOWNLINK="45mbit"
+UPLINK="9mbit"
+IFB_DEV="ifb-${IFACE}"
+
+cleanup() {
+  tc qdisc del dev "${IFACE}" root 2>/dev/null || true
+  tc qdisc del dev "${IFACE}" ingress 2>/dev/null || true
+  tc qdisc del dev "${IFB_DEV}" root 2>/dev/null || true
+  ip link set dev "${IFB_DEV}" down 2>/dev/null || true
+  ip link del "${IFB_DEV}" type ifb 2>/dev/null || true
+}
+
+apply_qos() {
+  cleanup
+
+  # Egress
+  tc qdisc add dev "${IFACE}" root cake \
+    bandwidth "${UPLINK}" \
+    besteffort nat wash ack-filter
+
+  # IFB für Ingress
+  ip link add "${IFB_DEV}" type ifb
+  ip link set dev "${IFB_DEV}" up
+
+  tc qdisc add dev "${IFACE}" ingress
+  tc filter add dev "${IFACE}" parent ffff: matchall \
+    action mirred egress redirect dev "${IFB_DEV}"
+
+  tc qdisc add dev "${IFB_DEV}" root cake \
+    bandwidth "${DOWNLINK}" \
+    besteffort nat wash
+}
+
+case "${ACTION}" in
+  up|dhcp4-change|dhcp6-change|connectivity-change|reapply)
+    apply_qos
+    ;;
+  down|pre-down|vpn-down)
+    cleanup
+    ;;
+  *)
+    ;;
+esac

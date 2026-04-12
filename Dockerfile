@@ -1,11 +1,11 @@
-FROM quay.io/fedora-ostree-desktops/kinoite:43
+FROM quay.io/fedora-ostree-desktops/kinoite:43@sha256:7675a82f2294e304d29ca553321f4eb02183fd4cbe6ad63a46179a8c4f6dd440
 
 LABEL org.opencontainers.image.title="kinoite-workstation" \
   org.opencontainers.image.description="Custom Fedora Kinoite workstation image" \
   org.opencontainers.image.url="https://hub.docker.com/r/mwmahlberg/kinoite-workstation" \
   org.opencontainers.image.source="https://github.com/mwmahlberg/backup" \
   org.opencontainers.image.authors="Markus Mahlberg" \
-  org.opencontainers.image.base.name="quay.io/fedora-ostree-desktops/kinoite:43"
+  org.opencontainers.image.base.name="quay.io/fedora-ostree-desktops/kinoite:43@sha256:7675a82f2294e304d29ca553321f4eb02183fd4cbe6ad63a46179a8c4f6dd440"
 
 # Avoid alloy %post useradd noise in rpm-ostree scriptlet sandbox by creating the account ahead of install.
 RUN set -eu; \
@@ -49,7 +49,7 @@ COPY ostree/configs/etc/ /etc/
 COPY --parents \
   README.md README.de.md \
   CHANGELOG.md releaselog.md \
-  Taskfile.yml .taskrc.yml .task/  \
+  Taskfile.yml .taskrc.yml .task/ \
   restic/ restore/ docs/ /usr/share/backup/
 
 RUN chmod 0755 /usr/share/backup/restic/hooks/*.sh /usr/share/backup/restore/*.sh \
@@ -72,6 +72,7 @@ RUN rpm-ostree install \
   gstreamer1-plugins-ugly \
   intel-gpu-tools \
   intel-media-driver \
+  iproute-tc \
   libavcodec-freeworld \
   libva-utils \
   powertop \
