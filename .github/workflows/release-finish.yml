@@ -126,7 +126,7 @@ jobs:
 
       - name: Comment on superseded Dependabot PR
         if: steps.verify.outputs.auto_finish == 'true' && steps.verify.outputs.dependabot_pr_number != ''
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const prNumber = Number('${{ steps.verify.outputs.dependabot_pr_number }}');
@@ -141,7 +141,7 @@ jobs:
 
       - name: Close superseded Dependabot PR
         if: steps.verify.outputs.auto_finish == 'true' && steps.verify.outputs.dependabot_pr_number != ''
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const prNumber = Number('${{ steps.verify.outputs.dependabot_pr_number }}');
