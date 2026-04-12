@@ -219,6 +219,107 @@ tasks:
         echo "  - $TARGET_DIR/Recovery.md"
         echo "  - $TARGET_DIR/Recovery.de.md"
 
+  status:
+    desc: Show the status of the latest backup
+    summary: |
+      Print the most recent restic snapshot and, when available, the last known
+      state of the scheduled systemd user backup unit. This helps verify whether
+      the latest backup completed successfully and when it last ran.
+    deps:
+      - task: :doctor
+    cmds:
+      - |
+        set -euo pipefail
+
+        PROFILE="${BACKUP_HOME_DIR:-$HOME/.local/share/backup}/restic/profiles.toml"
+        RESTIC_PASSWORD_FILE="$HOME/.config/restic/password"
+        RESTIC_ENV_FILE="$HOME/.config/restic/env"
+        BACKUP_UNIT="resticprofile-backup@profile-default.service"
+        UNIT_LOAD_STATE="$(systemctl --user show "$BACKUP_UNIT" --property=LoadState --value 2>/dev/null || true)"
+
+        if [[ ! -f "$RESTIC_PASSWORD_FILE" ]]; then
+          echo "Missing restic password file: $RESTIC_PASSWORD_FILE" >&2
+          exit 1
+        fi
+
+        if [[ ! -f "$RESTIC_ENV_FILE" ]]; then
+          echo "Missing restic env file: $RESTIC_ENV_FILE" >&2
+          exit 1
+        fi
+
+        set -a
+        source "$RESTIC_ENV_FILE"
+        set +a
+
+        if [[ -z "${RESTIC_REPOSITORY:-}" ]]; then
+          echo "RESTIC_REPOSITORY is not set in $RESTIC_ENV_FILE" >&2
+          exit 1
+        fi
+
+        echo "Backup profile: $PROFILE"
+        echo "Repository: $RESTIC_REPOSITORY"
+        echo
+        echo "Latest snapshot:"
+        if ! restic -r "$RESTIC_REPOSITORY" --password-file "$RESTIC_PASSWORD_FILE" snapshots --latest 1; then
+          echo "No snapshot found or repository is currently unreachable." >&2
+          exit 1
+        fi
+
+        echo
+        if [[ "$UNIT_LOAD_STATE" != "not-found" && -n "$UNIT_LOAD_STATE" ]]; then
+          echo "Last scheduled backup unit:"
+          systemctl --user show "$BACKUP_UNIT" \
+            --property=Result \
+            --property=ExecMainStatus \
+            --property=ExecMainCode \
+            --property=ExecMainStartTimestamp \
+            --property=ExecMainExitTimestamp \
+            --property=ActiveEnterTimestamp \
+            --property=ActiveExitTimestamp \
+            --no-pager
+        else
+          echo "Scheduled backup unit not loaded: $BACKUP_UNIT"
+          echo "Run 'backup-task system:schedule' if you want timer-managed backup status."
+        fi
+
+  unlock:
+    desc: Remove stale restic locks from the repository
+    summary: |
+      Load the configured restic repository from ~/.config/restic/env and remove
+      stale locks with `restic unlock`. Use this when a previous backup, check,
+      or forget run was interrupted and future operations are blocked by leftover
+      repository locks.
+    deps:
+      - task: :doctor
+    cmds:
+      - |
+        set -euo pipefail
+
+        RESTIC_PASSWORD_FILE="$HOME/.config/restic/password"
+        RESTIC_ENV_FILE="$HOME/.config/restic/env"
+
+        if [[ ! -f "$RESTIC_PASSWORD_FILE" ]]; then
+          echo "Missing restic password file: $RESTIC_PASSWORD_FILE" >&2
+          exit 1
+        fi
+
+        if [[ ! -f "$RESTIC_ENV_FILE" ]]; then
+          echo "Missing restic env file: $RESTIC_ENV_FILE" >&2
+          exit 1
+        fi
+
+        set -a
+        source "$RESTIC_ENV_FILE"
+        set +a
+
+        if [[ -z "${RESTIC_REPOSITORY:-}" ]]; then
+          echo "RESTIC_REPOSITORY is not set in $RESTIC_ENV_FILE" >&2
+          exit 1
+        fi
+
+        echo "Repository: $RESTIC_REPOSITORY"
+        restic -r "$RESTIC_REPOSITORY" --password-file "$RESTIC_PASSWORD_FILE" unlock
+
   restore-settings:
     desc: Restore saved settings from a USB device
     summary: |

@@ -74,6 +74,18 @@ Backup ausführen:
 resticprofile -c ~/.local/share/backup/restic/profiles.toml backup
 ```
 
+Status des letzten Backups anzeigen:
+
+```bash
+backup-task backup:status
+```
+
+Verwaiste Repository-Locks entfernen:
+
+```bash
+backup-task backup:unlock
+```
+
 Konsistenzprüfung:
 
 ```bash

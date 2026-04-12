@@ -151,6 +151,8 @@ Details: [docs/restore.md](docs/restore.md)
 | ------------------- | ---------------------------------------------------- |
 | `help`              | Guided entrypoint for common workflows               |
 | `doctor`            | Validate prerequisites                               |
+| `backup:unlock`     | Remove stale locks from the restic repository        |
+| `backup:status`     | Show the latest backup snapshot and last unit status |
 | `secrets:setup`     | Create restic secret files                           |
 | `secrets:check`     | Validate presence/permissions of restic secret files |
 | `setup:first-boot`  | One-command first-boot setup                         |

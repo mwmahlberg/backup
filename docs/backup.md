@@ -74,6 +74,18 @@ Run backup:
 resticprofile -c ~/.local/share/backup/restic/profiles.toml backup
 ```
 
+Show status of the latest backup:
+
+```bash
+backup-task backup:status
+```
+
+Remove stale repository locks:
+
+```bash
+backup-task backup:unlock
+```
+
 Run consistency check:
 
 ```bash

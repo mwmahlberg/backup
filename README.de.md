@@ -146,6 +146,8 @@ Details: [docs/restore.de.md](docs/restore.de.md)
 | ------------------- | ----------------------------------------------- |
 | `help`              | Geführter Einstieg für Standard-Workflows       |
 | `doctor`            | Voraussetzungen prüfen                          |
+| `backup:unlock`     | Verwaiste Locks im Restic-Repository entfernen  |
+| `backup:status`     | Letzten Snapshot und letzten Unit-Status anzeigen |
 | `secrets:setup`     | Restic-Secret-Dateien anlegen                   |
 | `secrets:check`     | Vorhandensein/Rechte von Restic-Secrets prüfen  |
 | `setup:first-boot`  | One-command Ersteinrichtung                     |
