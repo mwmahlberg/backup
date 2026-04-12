@@ -1,4 +1,4 @@
-FROM quay.io/fedora-ostree-desktops/kinoite:43@sha256:7675a82f2294e304d29ca553321f4eb02183fd4cbe6ad63a46179a8c4f6dd440
+FROM quay.io/fedora-ostree-desktops/kinoite:45@sha256:ee4061a04c729bc73375f5dfc81f87c3d4228e6daa7d3eb145efdf59c7973733
 
 LABEL org.opencontainers.image.title="kinoite-workstation" \
   org.opencontainers.image.description="Custom Fedora Kinoite workstation image" \
