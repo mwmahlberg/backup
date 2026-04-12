@@ -1,3 +1,27 @@
+## [0.5.0](https://github.com/mwmahlberg/backup/compare/v0.4.0...v0.5.0) (2026-04-12)
+
+
+### Features
+
+* **ci:** allow automated release ([c6ea3f7](https://github.com/mwmahlberg/backup/commit/c6ea3f70aa8e6e6214bf5961e30bb859f7b045ed))
+
+## [0.4.0](https://github.com/mwmahlberg/backup/compare/v0.3.0...v0.4.0) (2026-04-12)
+
+
+### Features
+
+* **backup:** add repository status and unlock tasks ([9606ff6](https://github.com/mwmahlberg/backup/commit/9606ff6148ed1a47952232d05a98319656bd489c))
+* **backup:** harden scheduled backup runtime ([51d8764](https://github.com/mwmahlberg/backup/commit/51d87647757ca440b5e0e8ee1102b98635d53ecd))
+* **ci:** check Docker base image updates daily ([823f7a5](https://github.com/mwmahlberg/backup/commit/823f7a5c8af6af9fc2e2e3a1c50caffea90ecdd2))
+* **ci:** close superseded Dependabot image PRs ([e6c1cea](https://github.com/mwmahlberg/backup/commit/e6c1cea0f32252ddeecca32b5a80cc562b50cba1))
+* **image:** add Wi-Fi CAKE shaping support ([01fa31c](https://github.com/mwmahlberg/backup/commit/01fa31c258560b00513471a82ab946c383d70e28))
+* **task:** add a GitHub workflow dry-run task ([25f7ede](https://github.com/mwmahlberg/backup/commit/25f7eded41b6599e92816ebbd8c788319b01a65e))
+
+
+### Performance Improvements
+
+* **system:** reduce the default zram allocation ([1e51983](https://github.com/mwmahlberg/backup/commit/1e5198323273fc2bc2fe532fdf7e1cb1a9558889))
+
 ## [0.3.0](https://github.com/mwmahlberg/backup/compare/v0.2.2...v0.3.0) (2026-03-28)
 
 
