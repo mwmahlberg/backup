@@ -54,7 +54,7 @@ jobs:
             }
 
             const patch = files[0].patch || '';
-            const match = patch.match(/(^|\n)\+FROM\s+quay\.io\/fedora-ostree-desktops\/kinoite:43(?:\s|$)/m);
+            const match = patch.match(/(^|\n)\+FROM\s+quay\.io\/fedora-ostree-desktops\/kinoite:43(?:@sha256:[a-f0-9]{64})?(?:\s|$)/m);
             if (!match) {
               core.info('No Fedora 43 Kinoite base image update found; skipping.');
               core.setOutput('eligible', 'false');
@@ -110,7 +110,7 @@ jobs:
           short_digest="$(printf '%s' "${upstream_digest#sha256:}" | cut -c1-12)"
 
           git add Dockerfile
-          git commit -m "feat: Update to upstream ${short_digest}"
+          git commit -m "feat: Update to upstream ${short_digest}" -m "Dependabot PR: #${{ github.event.pull_request.number }}"
 
       - name: Push release candidate branch
         run: |

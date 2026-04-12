@@ -13,6 +13,8 @@ concurrency:
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   finish-release:
@@ -38,14 +40,27 @@ jobs:
         run: |
           set -euo pipefail
 
-          subject="$(git show -s --format=%s "${RELEASE_HEAD_SHA}")"
+          release_commit="$(git log "${RELEASE_BRANCH}" --grep='^feat: Update to upstream [0-9a-f]\{12\}$' -n 1 --format=%H)"
+          if [ -z "${release_commit}" ]; then
+            echo "auto_finish=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          subject="$(git show -s --format=%s "${release_commit}")"
           if ! printf '%s' "${subject}" | grep -Eq '^feat: Update to upstream [0-9a-f]{12}$'; then
+            echo "auto_finish=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          pr_number="$(git show -s --format=%b "${release_commit}" | sed -n 's/^Dependabot PR: #\([0-9][0-9]*\)$/\1/p' | head -n1)"
+          if [ -z "${pr_number}" ]; then
             echo "auto_finish=false" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
 
           echo "auto_finish=true" >> "${GITHUB_OUTPUT}"
           echo "release_version=${RELEASE_BRANCH#release/}" >> "${GITHUB_OUTPUT}"
+          echo "dependabot_pr_number=${pr_number}" >> "${GITHUB_OUTPUT}"
 
       - name: Install git-flow
         if: steps.verify.outputs.auto_finish == 'true'
@@ -112,3 +127,32 @@ jobs:
           git push origin main develop
           git push origin "v${RELEASE_VERSION}"
           git push origin --delete "${RELEASE_BRANCH}"
+
+      - name: Comment on superseded Dependabot PR
+        if: steps.verify.outputs.auto_finish == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const prNumber = Number('${{ steps.verify.outputs.dependabot_pr_number }}');
+            const releaseVersion = '${{ steps.verify.outputs.release_version }}';
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `This update has been incorporated through the automated image release flow and released as \`v${releaseVersion}\`. Closing this PR as superseded.`,
+            });
+
+      - name: Close superseded Dependabot PR
+        if: steps.verify.outputs.auto_finish == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const prNumber = Number('${{ steps.verify.outputs.dependabot_pr_number }}');
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              state: 'closed',
+            });
