@@ -20,10 +20,13 @@ schedule-permission = "user_logged_on"
 source = ["/var/home/markus"]
 
 exclude = [
+  "$HOME/.ansible",
   "$HOME/.cache",
   "$HOME/.config/restic",
   "$HOME/.local/share/containers/storage",
   "$HOME/.local/share/Trash",
+  "$HOME/.vscode",
+  "$HOME/.vscode-server",
   "$HOME/**/node_modules",
   "$HOME/**/target",
 ]
